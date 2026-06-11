@@ -10,10 +10,21 @@
     <meta name="apple-mobile-web-app-title" content="TDEE Tracker" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="theme-color" content="#0f172a" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/app-icon-512.jpg" />
   </head>
   <body class="bg-slate-50">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('PWA Service Worker register success:', reg.scope))
+            .catch(err => console.log('PWA Service Worker check failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>
 

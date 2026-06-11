@@ -18,9 +18,14 @@ import {
   ChevronRight,
   PlusCircle,
   TrendingUp,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Globe,
+  Loader2,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { searchLocalFoods, searchOpenFoodFacts, FoodDbItem, LOCAL_FOOD_DATABASE } from '../utils/foodDatabase';
 
 interface FoodDiaryProps {
   profile: UserBioProfile;
@@ -52,12 +57,26 @@ export default function FoodDiary({
   adaptiveTdee,
 }: FoodDiaryProps) {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  
+  // Custom manual entry states
   const [foodName, setFoodName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+
+  // Database search state entries
+  const [entryMode, setEntryMode] = useState<'database' | 'manual'>('database');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchRegion, setSearchRegion] = useState<'all' | 'us' | 'ru' | 'ua'>('all');
+  const [dbResults, setDbResults] = useState<FoodDbItem[]>([]);
+  const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+  const [dbSearchAttempted, setDbSearchAttempted] = useState(false);
+  
+  const [selectedDbItem, setSelectedDbItem] = useState<FoodDbItem | null>(null);
+  const [portionGrams, setPortionGrams] = useState<string>('100');
+  const [dbMealType, setDbMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
 
   // Recalculate target calories & macros
   const activeBaseTdee = adaptiveTdee || calculateTheoreticalTDEE(profile);
@@ -117,6 +136,79 @@ export default function FoodDiary({
       fat: preset.fat,
       mealType: preset.category,
     });
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) {
+      // If empty query, show all region local foods
+      const initial = searchLocalFoods('', searchRegion);
+      setDbResults(initial);
+      setDbSearchAttempted(false);
+      return;
+    }
+
+    setDbSearchAttempted(true);
+    setSelectedDbItem(null);
+
+    // 1. Run local search immediately for high-speed responsiveness
+    const local = searchLocalFoods(query, searchRegion);
+    setDbResults(local);
+
+    // 2. Trigger async global Open Food Facts API
+    setIsSearchingOnline(true);
+    try {
+      const online = await searchOpenFoodFacts(query, searchRegion);
+      const merged = [...local];
+      const localNames = new Set(local.map(item => item.name.toLowerCase()));
+
+      online.forEach(item => {
+        if (!localNames.has(item.name.toLowerCase())) {
+          merged.push(item);
+        }
+      });
+
+      setDbResults(merged);
+    } catch (err) {
+      console.warn('Online fetch issue', err);
+    } finally {
+      setIsSearchingOnline(false);
+    }
+  };
+
+  // Run initial search query results on region change if query exists
+  React.useEffect(() => {
+    if (searchQuery.trim()) {
+      const e = { preventDefault: () => {} };
+      handleSearch(e as any);
+    } else {
+      // Standard local list of this region when nothing searched
+      const initial = LOCAL_FOOD_DATABASE.filter(f => searchRegion === 'all' || f.region === searchRegion);
+      setDbResults(initial);
+    }
+  }, [searchRegion]);
+
+  // Handle db logging
+  const handleLogDbItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDbItem) return;
+
+    const grams = parseFloat(portionGrams) || 100;
+    const factor = grams / 100;
+
+    onAddFoodLog({
+      date: selectedDate,
+      name: `${selectedDbItem.name} (${grams}g)`,
+      calories: Math.round(selectedDbItem.caloriesPer100g * factor),
+      protein: Math.round(selectedDbItem.proteinPer100g * factor * 10) / 10,
+      carbs: Math.round(selectedDbItem.carbsPer100g * factor * 10) / 10,
+      fat: Math.round(selectedDbItem.fatPer100g * factor * 10) / 10,
+      mealType: dbMealType,
+    });
+
+    setSelectedDbItem(null);
+    setPortionGrams('100');
   };
 
   // Group meals
@@ -308,109 +400,327 @@ export default function FoodDiary({
         {/* Left Side: Add food & Quick Add */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           
-          {/* Add custom form */}
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)]">
-            <span className="text-[9px] font-black tracking-widest text-orange-600 uppercase font-mono block">LEDGER INGESTIONS</span>
-            <h3 className="text-lg font-black text-slate-900 flex items-center gap-1.5 mt-0.5 uppercase tracking-tight">
-              <Utensils className="h-5 w-5 text-orange-550" />
-              Log Ingested Food Item
-            </h3>
-
-            <form onSubmit={handleCustomSubmit} className="flex flex-col gap-4 mt-4" id="add-food-form">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Food Description Name</label>
-                <input
-                  type="text"
-                  placeholder="Seared steak, white rice, avocado, oatmeal, etc..."
-                  value={foodName}
-                  onChange={(e) => setFoodName(e.target.value)}
-                  className="w-full bg-white border-2 border-slate-900 rounded-xl px-3.5 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  required
-                />
+          {/* Main Ingestion & Database Card with neo-brutalist tabs */}
+          <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <span className="text-[9px] font-black tracking-widest text-orange-600 uppercase font-mono block">DIET LEDGER INGESTIONS</span>
+                <span className="text-sm font-black text-slate-900 uppercase tracking-tight block">Log Clean Whole Foods</span>
               </div>
+              
+              {/* Tabs selector */}
+              <div className="flex bg-slate-100 border-2 border-slate-900 p-0.5 rounded-xl">
+                <button
+                  onClick={() => setEntryMode('database')}
+                  className={`px-2.5 py-1 font-mono text-[10px] font-black rounded-lg uppercase tracking-tight transition-all cursor-pointer ${
+                    entryMode === 'database'
+                      ? 'bg-slate-900 text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.25)]'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Database
+                </button>
+                <button
+                  onClick={() => setEntryMode('manual')}
+                  className={`px-2.5 py-1 font-mono text-[10px] font-black rounded-lg uppercase tracking-tight transition-all cursor-pointer ${
+                    entryMode === 'manual'
+                      ? 'bg-slate-900 text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.25)]'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  Manual
+                </button>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5Col">
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Meal Category</label>
-                  <select
-                    value={mealType}
-                    onChange={(e) => setMealType(e.target.value as any)}
-                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 focus:outline-none"
+            {/* Render Database Search Mode */}
+            {entryMode === 'database' ? (
+              <div className="flex flex-col gap-3.5">
+                {/* Search Bar / Input */}
+                <form onSubmit={handleSearch} className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Try Borscht, Syrniki, Chicken, Banana..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white border-2 border-slate-900 rounded-xl pl-9 pr-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 hover:border-slate-400 transition-all font-mono"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-slate-900 text-white border-2 border-slate-900 px-3 py-2 text-xs font-black uppercase tracking-wider rounded-xl hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]"
                   >
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snack">Snack</option>
-                  </select>
+                    {isSearchingOnline ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-orange-450" />
+                    ) : (
+                      'Search'
+                    )}
+                  </button>
+                </form>
+
+                {/* Country/Region Filter Switchers — US / RU / UA */}
+                <div className="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 border border-slate-200 rounded-xl">
+                  <span className="text-[8px] font-black uppercase text-slate-400 font-mono tracking-widest pl-1 mr-1">Region:</span>
+                  {[
+                    { id: 'all', label: 'All 🌐' },
+                    { id: 'us', label: 'US 🇺🇸' },
+                    { id: 'ru', label: 'RU 🇷🇺' },
+                    { id: 'ua', label: 'UA 🇺🇦' }
+                  ].map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setSearchRegion(r.id as any)}
+                      className={`px-2 py-0.5 text-[9px] font-black font-mono rounded-lg border transition-all cursor-pointer ${
+                        searchRegion === r.id
+                          ? 'bg-orange-500 border-orange-600 text-white'
+                          : 'bg-white border-slate-250 text-slate-755 hover:bg-slate-100'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
                 </div>
 
+                {/* Search Results Display List */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase font-mono">
+                    Matching Products ({dbResults.length})
+                  </span>
+                  
+                  <div className="max-h-[220px] overflow-y-auto border-2 border-slate-150 rounded-2xl divide-y divide-slate-100 bg-slate-50 p-1 flex flex-col gap-1 pr-1">
+                    {dbResults.length === 0 ? (
+                      <div className="py-8 flex flex-col items-center justify-center text-center gap-1 bg-white rounded-xl border border-slate-200">
+                        <Utensils className="h-6 w-6 text-slate-300 animate-pulse" />
+                        <span className="text-[10px] text-slate-400 font-mono uppercase font-black">No matching items</span>
+                        <p className="text-[9px] text-slate-450 font-semibold px-4">Type a query above to search local + global open registry!</p>
+                      </div>
+                    ) : (
+                      dbResults.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDbItem(item);
+                            setPortionGrams('100');
+                          }}
+                          className={`w-full text-left p-2 rounded-xl border transition-all flex flex-col gap-0.5 cursor-pointer hover:bg-white text-xs ${
+                            selectedDbItem?.id === item.id
+                              ? 'bg-orange-50/70 border-orange-500 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-mono'
+                              : 'bg-white border-transparent hover:border-slate-100 font-mono'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start w-full gap-2 font-mono">
+                            <span className="font-extrabold text-slate-900 truncate leading-tight flex-1">{item.name}</span>
+                            {item.brand && (
+                              <span className="text-[8px] font-black tracking-wide font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded leading-none">
+                                {item.brand}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex justify-between items-center w-full mt-1.5">
+                            <span className="text-[10px] text-orange-650 font-black font-mono">
+                              {item.caloriesPer100g} kcal <span className="text-[8px] text-slate-400">/ 100g</span>
+                            </span>
+                            
+                            <div className="flex gap-2 text-[9px] font-mono text-slate-450 font-bold">
+                              <span className="text-rose-500">P: {item.proteinPer100g}g</span>
+                              <span>&bull;</span>
+                              <span className="text-amber-500">C: {item.carbsPer100g}g</span>
+                              <span>&bull;</span>
+                              <span className="text-sky-500">F: {item.fatPer100g}g</span>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Database item portion size scaler sub-form drawer */}
+                <AnimatePresence>
+                  {selectedDbItem && (
+                    <motion.form
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="border-2 border-orange-200 bg-orange-50/20 rounded-2xl p-4 overflow-hidden flex flex-col gap-3.5"
+                      onSubmit={handleLogDbItem}
+                    >
+                      <div className="flex justify-between items-center border-b border-orange-100 pb-2">
+                        <div className="flex items-center gap-1 text-orange-600">
+                          <Sparkles className="h-4 w-4" />
+                          <span className="text-[10px] font-black uppercase font-mono tracking-wider">Configure Portion Scale</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-500 truncate max-w-[120px]">{selectedDbItem.name}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Meal Destination</label>
+                          <select
+                            value={dbMealType}
+                            onChange={(e) => setDbMealType(e.target.value as any)}
+                            className="bg-white border-2 border-slate-900 rounded-xl px-2 py-1.5 text-xs font-black text-slate-900 focus:outline-none"
+                          >
+                            <option value="breakfast">Breakfast</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="dinner">Dinner</option>
+                            <option value="snack">Snack</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Quantity eaten (grams)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5000"
+                            value={portionGrams}
+                            onChange={(e) => setPortionGrams(e.target.value)}
+                            className="bg-white border-2 border-slate-900 rounded-xl px-3 py-1.5 text-xs font-mono font-black text-slate-900 focus:outline-none"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Live scaling calculator readout panel */}
+                      <div className="bg-white border border-orange-150 p-2.5 rounded-xl flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-[8px] font-black text-slate-400 uppercase font-mono tracking-widest">SCALED CALORIES</span>
+                          <span className="text-sm font-black font-mono text-orange-650">
+                            {Math.round(selectedDbItem.caloriesPer100g * ((parseFloat(portionGrams) || 100) / 100))} kcal
+                          </span>
+                        </div>
+
+                        <div className="flex gap-2.5 text-[10px] font-mono font-black uppercase">
+                          <div className="flex flex-col items-center">
+                            <span className="text-[8px] text-rose-500">P (g)</span>
+                            <span className="text-rose-600">{Math.round(selectedDbItem.proteinPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[8px] text-amber-500">C (g)</span>
+                            <span className="text-amber-655">{Math.round(selectedDbItem.carbsPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[8px] text-sky-500">F (g)</span>
+                            <span className="text-sky-655">{Math.round(selectedDbItem.fatPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-semibold py-2 rounded-xl text-xs cursor-pointer transition-all uppercase font-mono tracking-wide"
+                      >
+                        <Check className="h-4 w-4 text-orange-450 stroke-[3px]" />
+                        Log {portionGrams || '100'}g to {dbMealType}
+                      </button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              /* Manual Entry Form */
+              <form onSubmit={handleCustomSubmit} className="flex flex-col gap-4 mt-0" id="add-food-form">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Calories (kcal)</label>
+                  <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Food Description Name</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="5000"
-                    placeholder="350"
-                    value={calories}
-                    onChange={(e) => setCalories(e.target.value)}
-                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 focus:outline-none"
+                    type="text"
+                    placeholder="Seared steak, white rice, avocado, oatmeal, etc..."
+                    value={foodName}
+                    onChange={(e) => setFoodName(e.target.value)}
+                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-3.5 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
                     required
                   />
                 </div>
-              </div>
 
-              {/* Advanced grams row */}
-              <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl">
-                <p className="text-[9px] font-black text-slate-400 uppercase font-mono tracking-widest mb-2.5">
-                  Macronutrient Grams (optional)
-                </p>
-                <div className="grid grid-cols-3 gap-2.5">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[8px] font-black text-rose-500 uppercase font-mono text-center">Protein (g)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="25"
-                      value={protein}
-                      onChange={(e) => setProtein(e.target.value)}
-                      className="w-full bg-white border-2 border-slate-350 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
-                    />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Meal Category</label>
+                    <select
+                      value={mealType}
+                      onChange={(e) => setMealType(e.target.value as any)}
+                      className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    >
+                      <option value="breakfast">Breakfast</option>
+                      <option value="lunch">Lunch</option>
+                      <option value="dinner">Dinner</option>
+                      <option value="snack">Snack</option>
+                    </select>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[8px] font-black text-amber-500 uppercase font-mono text-center">Carbs (g)</span>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Calories (kcal)</label>
                     <input
                       type="number"
                       min="0"
-                      placeholder="30"
-                      value={carbs}
-                      onChange={(e) => setCarbs(e.target.value)}
-                      className="w-full bg-white border-2 border-slate-355 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[8px] font-black text-sky-500 uppercase font-mono text-center">Fats (g)</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="8"
-                      value={fat}
-                      onChange={(e) => setFat(e.target.value)}
-                      className="w-full bg-white border-2 border-slate-355 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                      max="5000"
+                      placeholder="350"
+                      value={calories}
+                      onChange={(e) => setCalories(e.target.value)}
+                      className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      required
                     />
                   </div>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                id="add-custom-food-btn"
-                className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-semibold py-2.5 rounded-xl text-xs cursor-pointer transition-all"
-              >
-                <Plus className="h-4.5 w-4.5 text-orange-450 stroke-[3px]" /> Add to Diary
-              </button>
-            </form>
+                {/* Advanced grams row */}
+                <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl">
+                  <p className="text-[9px] font-black text-slate-400 uppercase font-mono tracking-widest mb-2.5">
+                    Macronutrient Grams (optional)
+                  </p>
+                  <div className="grid grid-cols-3 gap-2.5 font-mono">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-rose-500 uppercase font-mono text-center">Protein (g)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="25"
+                        value={protein}
+                        onChange={(e) => setProtein(e.target.value)}
+                        className="w-full bg-white border-2 border-slate-350 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-amber-500 uppercase font-mono text-center">Carbs (g)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="30"
+                        value={carbs}
+                        onChange={(e) => setCarbs(e.target.value)}
+                        className="w-full bg-white border-2 border-slate-355 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[8px] font-black text-sky-500 uppercase font-mono text-center">Fats (g)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="8"
+                        value={fat}
+                        onChange={(e) => setFat(e.target.value)}
+                        className="w-full bg-white border-2 border-slate-355 rounded-lg py-1 px-2 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  id="add-custom-food-btn"
+                  className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-semibold py-2.5 rounded-xl text-xs cursor-pointer transition-all"
+                >
+                  <Plus className="h-4.5 w-4.5 text-orange-450 stroke-[3px]" /> Add Manual Item
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Quick Add Presets Panel */}
@@ -419,7 +729,7 @@ export default function FoodDiary({
               <h4 className="text-xs font-black text-slate-900 uppercase font-mono font-bold tracking-tight">Quick Add Presets</h4>
               <p className="text-[10px] text-slate-400 uppercase font-mono font-semibold mt-0.5">Click any common clean building meal to log</p>
             </div>
-            <div className="max-h-[220px] overflow-y-auto pr-1 flex flex-col gap-2 divide-y divide-slate-100">
+            <div className="max-h-[200px] overflow-y-auto pr-1 flex flex-col gap-2 divide-y divide-slate-100">
               {PRESET_FOODS.map((preset, i) => (
                 <div
                   key={i}
