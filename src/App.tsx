@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserBioProfile, DailyLog } from './types';
+import { UserBioProfile, DailyLog, FoodItemLog } from './types';
 import Header from './components/Header';
 import DashboardOverview from './components/DashboardOverview';
 import { lbsToKg, kgToLbs, inToCm, cmToIn } from './utils/calc';
@@ -22,6 +22,7 @@ const DEFAULT_PROFILE: UserBioProfile = {
 export default function App() {
   const [profile, setProfile] = useState<UserBioProfile>(DEFAULT_PROFILE);
   const [logs, setLogs] = useState<DailyLog[]>([]);
+  const [foodLogs, setFoodLogs] = useState<FoodItemLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load from LocalStorage on mount
@@ -29,12 +30,16 @@ export default function App() {
     try {
       const storedProfile = localStorage.getItem('tdee_user_profile');
       const storedLogs = localStorage.getItem('tdee_daily_logs');
+      const storedFoodLogs = localStorage.getItem('tdee_food_logs');
 
       if (storedProfile) {
         setProfile(JSON.parse(storedProfile));
       }
       if (storedLogs) {
         setLogs(JSON.parse(storedLogs));
+      }
+      if (storedFoodLogs) {
+        setFoodLogs(JSON.parse(storedFoodLogs));
       }
     } catch (e) {
       console.error('Failed to load local storage datasets', e);
@@ -51,6 +56,64 @@ export default function App() {
   const handleUpdateLogs = (newLogs: DailyLog[]) => {
     setLogs(newLogs);
     localStorage.setItem('tdee_daily_logs', JSON.stringify(newLogs));
+  };
+
+  // Sync food diary calories into standard daily TDEE weight-logging list
+  const syncCalorieLogForDate = (dateStr: string, currentFoodLogs: FoodItemLog[], currentLogsState: DailyLog[]) => {
+    const dailySum = currentFoodLogs
+      .filter((f) => f.date === dateStr)
+      .reduce((sum, item) => sum + item.calories, 0);
+
+    const existingIndex = currentLogsState.findIndex((log) => log.date === dateStr);
+    const updatedLogs = [...currentLogsState];
+
+    if (existingIndex >= 0) {
+      updatedLogs[existingIndex] = {
+        ...updatedLogs[existingIndex],
+        caloriesConsumed: dailySum,
+      };
+    } else if (dailySum > 0) {
+      // Create new daily log entry automatically containing total food calories
+      const lastKnownWeight = currentLogsState.length > 0
+        ? [...currentLogsState].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].weight
+        : profile.weight;
+
+      const newLog: DailyLog = {
+        id: Math.random().toString(36).substring(2, 9),
+        date: dateStr,
+        weight: lastKnownWeight, // carry over
+        caloriesConsumed: dailySum,
+        notes: 'Synced from Food Diary',
+      };
+      updatedLogs.push(newLog);
+    }
+
+    setLogs(updatedLogs);
+    localStorage.setItem('tdee_daily_logs', JSON.stringify(updatedLogs));
+  };
+
+  const handleAddFoodLog = (newItem: Omit<FoodItemLog, 'id'>) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    const updated = [...foodLogs, { ...newItem, id }];
+    setFoodLogs(updated);
+    localStorage.setItem('tdee_food_logs', JSON.stringify(updated));
+    syncCalorieLogForDate(newItem.date, updated, logs);
+  };
+
+  const handleDeleteFoodLog = (id: string) => {
+    const itemToDelete = foodLogs.find((f) => f.id === id);
+    if (!itemToDelete) return;
+    const updated = foodLogs.filter((f) => f.id !== id);
+    setFoodLogs(updated);
+    localStorage.setItem('tdee_food_logs', JSON.stringify(updated));
+    syncCalorieLogForDate(itemToDelete.date, updated, logs);
+  };
+
+  const handleClearFoodLogsForDate = (dateStr: string) => {
+    const updated = foodLogs.filter((f) => f.date !== dateStr);
+    setFoodLogs(updated);
+    localStorage.setItem('tdee_food_logs', JSON.stringify(updated));
+    syncCalorieLogForDate(dateStr, updated, logs);
   };
 
   // Convert unit system cleanly (weight, height variables, and all historic log entries dynamically!)
@@ -120,8 +183,12 @@ export default function App() {
         <DashboardOverview
           profile={profile}
           logs={logs}
+          foodLogs={foodLogs}
           onUpdateProfile={handleUpdateProfile}
           onUpdateLogs={handleUpdateLogs}
+          onAddFoodLog={handleAddFoodLog}
+          onDeleteFoodLog={handleDeleteFoodLog}
+          onClearFoodLogsForDate={handleClearFoodLogsForDate}
         />
       </main>
 

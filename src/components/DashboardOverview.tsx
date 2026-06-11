@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserBioProfile, DailyLog } from '../types';
+import { UserBioProfile, DailyLog, FoodItemLog } from '../types';
 import {
   calculateTheoreticalTDEE,
   calculateAdaptiveTDEE,
@@ -13,6 +13,7 @@ import BioProfileForm from './BioProfileForm';
 import MacroPlanner from './MacroPlanner';
 import TdeeLogger from './TdeeLogger';
 import MealPlanner from './MealPlanner';
+import FoodDiary from './FoodDiary';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Compass,
@@ -26,23 +27,32 @@ import {
   Dumbbell,
   ShieldAlert,
   HelpCircle,
-  TrendingDown
+  TrendingDown,
+  Utensils
 } from 'lucide-react';
 
 interface DashboardOverviewProps {
   profile: UserBioProfile;
   logs: DailyLog[];
+  foodLogs: FoodItemLog[];
   onUpdateProfile: (updated: UserBioProfile) => void;
   onUpdateLogs: (newLogs: DailyLog[]) => void;
+  onAddFoodLog: (item: Omit<FoodItemLog, 'id'>) => void;
+  onDeleteFoodLog: (id: string) => void;
+  onClearFoodLogsForDate: (dateStr: string) => void;
 }
 
 export default function DashboardOverview({
   profile,
   logs,
+  foodLogs,
   onUpdateProfile,
-  onUpdateLogs
+  onUpdateLogs,
+  onAddFoodLog,
+  onDeleteFoodLog,
+  onClearFoodLogsForDate,
 }: DashboardOverviewProps) {
-  const [activeTab, setActiveTab] = useState<'bio' | 'diet' | 'tracker' | 'meals'>('bio');
+  const [activeTab, setActiveTab] = useState<'bio' | 'tracker' | 'diary' | 'diet' | 'meals'>('tracker');
 
   const theoreticalTdee = calculateTheoreticalTDEE(profile);
   const adaptiveResults = calculateAdaptiveTDEE(logs, theoreticalTdee, profile.unitSystem);
@@ -79,16 +89,22 @@ export default function DashboardOverview({
       icon: <Compass className="h-5 w-5" />
     },
     {
-      id: 'diet',
-      label: 'Diet & Macros',
-      desc: 'Macros ratios & caloric levels',
-      icon: <Zap className="h-5 w-5" />
-    },
-    {
       id: 'tracker',
       label: 'Adaptive Logs',
       desc: 'Empirical TDEE & plots',
       icon: <LineChart className="h-5 w-5" />
+    },
+    {
+      id: 'diary',
+      label: 'Food Diary',
+      desc: 'Add & count foods',
+      icon: <Utensils className="h-5 w-5" />
+    },
+    {
+      id: 'diet',
+      label: 'Diet & Macros',
+      desc: 'Macros ratios & caloric levels',
+      icon: <Zap className="h-5 w-5" />
     },
     {
       id: 'meals',
@@ -233,14 +249,6 @@ export default function DashboardOverview({
                 <BioProfileForm profile={profile} onChange={onUpdateProfile} />
               )}
 
-              {activeTab === 'diet' && (
-                <MacroPlanner
-                  profile={profile}
-                  onChange={onUpdateProfile}
-                  adaptiveTdee={adaptiveResults.hasEnoughData ? adaptiveResults.currentTdee : undefined}
-                />
-              )}
-
               {activeTab === 'tracker' && (
                 <TdeeLogger
                   logs={logs}
@@ -248,6 +256,25 @@ export default function DashboardOverview({
                   theoreticalTdee={theoreticalTdee}
                   onUpdateLogs={onUpdateLogs}
                   startingWeight={profile.weight}
+                />
+              )}
+
+              {activeTab === 'diary' && (
+                <FoodDiary
+                  profile={profile}
+                  foodLogs={foodLogs}
+                  onAddFoodLog={onAddFoodLog}
+                  onDeleteFoodLog={onDeleteFoodLog}
+                  onClearFoodLogsForDate={onClearFoodLogsForDate}
+                  adaptiveTdee={adaptiveResults.hasEnoughData ? adaptiveResults.currentTdee : undefined}
+                />
+              )}
+
+              {activeTab === 'diet' && (
+                <MacroPlanner
+                  profile={profile}
+                  onChange={onUpdateProfile}
+                  adaptiveTdee={adaptiveResults.hasEnoughData ? adaptiveResults.currentTdee : undefined}
                 />
               )}
 

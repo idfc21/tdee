@@ -51,6 +51,17 @@ export interface DailyLog {
   notes?: string;
 }
 
+export interface FoodItemLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string;
+  calories: number;
+  protein: number; // in grams
+  carbs: number;   // in grams
+  fat: number;     // in grams
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+}
+
 export interface MealAllocation {
   breakfast: number; // percentage
   lunch: number; // percentage

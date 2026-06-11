@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DailyLog, UnitSystem } from '../types';
 import { calculateAdaptiveTDEE, generateMockLogs } from '../utils/calc';
 import {
@@ -49,6 +49,20 @@ export default function TdeeLogger({
   const [calories, setCalories] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [graphTab, setGraphTab] = useState<'weight' | 'tdee'>('weight');
+
+  // Trigger auto-prefill of inputs when date shifts or logs update (syncing food total cals)
+  useEffect(() => {
+    const matchedLog = logs.find((log) => log.date === date);
+    if (matchedLog) {
+      setWeight(matchedLog.weight ? matchedLog.weight.toString() : '');
+      setCalories(matchedLog.caloriesConsumed ? matchedLog.caloriesConsumed.toString() : '');
+      setNotes(matchedLog.notes || '');
+    } else {
+      setWeight('');
+      setCalories('');
+      setNotes('');
+    }
+  }, [date, logs]);
 
   // Calculate Adaptive TDEE results
   const adaptiveResults = calculateAdaptiveTDEE(logs, theoreticalTdee, unitSystem);
