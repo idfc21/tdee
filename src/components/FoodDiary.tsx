@@ -22,7 +22,9 @@ import {
   Search,
   Globe,
   Loader2,
-  Check
+  Check,
+  X,
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { searchLocalFoods, searchOpenFoodFacts, FoodDbItem, LOCAL_FOOD_DATABASE } from '../utils/foodDatabase';
@@ -77,6 +79,68 @@ export default function FoodDiary({
   const [selectedDbItem, setSelectedDbItem] = useState<FoodDbItem | null>(null);
   const [portionGrams, setPortionGrams] = useState<string>('100');
   const [dbMealType, setDbMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+
+  // Local helper for relative date highlights
+  const todayStr = React.useMemo(() => new Date().toISOString().split('T')[0], []);
+  
+  const yesterdayStr = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const dayBeforeYesterdayStr = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const tomorrowStr = React.useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  // Generate rolling 7-day carousel range centering on selectedDate
+  const rollingDays = React.useMemo(() => {
+    const center = new Date(selectedDate);
+    const result = [];
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(center);
+      d.setDate(d.getDate() + i);
+      const str = d.toISOString().split('T')[0];
+      
+      // Determine label
+      let dayOfWeek = d.toLocaleDateString('ru-RU', { weekday: 'short' });
+      dayOfWeek = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
+      
+      result.push({
+        dateStr: str,
+        dayNum: d.getDate(),
+        dayLabel: dayOfWeek,
+        hasFoods: foodLogs.some(f => f.date === str)
+      });
+    }
+    return result;
+  }, [selectedDate, foodLogs]);
+
+  const handlePresetClick = (preset: typeof PRESET_FOODS[number], idx: number) => {
+    const tempDbItem: FoodDbItem = {
+      id: `preset-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+      name: preset.name,
+      brand: 'Quick Add Preset',
+      caloriesPer100g: preset.calories, // treated as 1 serving reference
+      proteinPer100g: preset.protein,
+      carbsPer100g: preset.carbs,
+      fatPer100g: preset.fat,
+      region: 'global',
+      lang: 'en',
+      tags: []
+    };
+    setSelectedDbItem(tempDbItem);
+    setPortionGrams('100'); // Log 100% of standard serving
+    setDbMealType(preset.category);
+  };
 
   // Recalculate target calories & macros
   const activeBaseTdee = adaptiveTdee || calculateTheoreticalTDEE(profile);
@@ -241,25 +305,114 @@ export default function FoodDiary({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Date Switcher row & Stats overview */}
-      <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="p-2.5 bg-slate-900 text-white rounded-2xl border-2 border-slate-900">
-            <Calendar className="h-5 w-5 text-orange-450" />
+      {/* Custom Timeline Carousel & Day Switcher Panel */}
+      <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5">
+        
+        {/* Upper Row: Fast Relative Jump Actions & Raw Picker */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-slate-900 text-white rounded-2xl border-2 border-slate-900">
+              <Calendar className="h-5 w-5 text-orange-450" />
+            </div>
+            <div>
+              <span className="text-[9px] font-black tracking-widest text-slate-400 block font-mono uppercase">CHRONOLOGICAL DATING</span>
+              <span className="text-base font-black text-slate-900 uppercase tracking-tight block">Diet & Calories Ledger</span>
+            </div>
           </div>
-          <div>
-            <span className="text-[9px] font-black tracking-widest text-slate-400 block font-mono uppercase">CHRONOLOGICAL RANGE</span>
-            <span className="text-base font-black text-slate-900 uppercase tracking-tight block">Diet diary selected date</span>
+
+          {/* Quick Relative jump buttons */}
+          <div className="flex flex-wrap items-center gap-1.5 font-mono">
+            <button
+              onClick={() => setSelectedDate(dayBeforeYesterdayStr)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+                selectedDate === dayBeforeYesterdayStr
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              Позавчера
+            </button>
+            <button
+              onClick={() => setSelectedDate(yesterdayStr)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+                selectedDate === yesterdayStr
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              Вчера
+            </button>
+            <button
+              onClick={() => setSelectedDate(todayStr)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+                selectedDate === todayStr
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              Сегодня
+            </button>
+            <button
+              onClick={() => setSelectedDate(tomorrowStr)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+                selectedDate === tomorrowStr
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+              }`}
+            >
+              Завтра
+            </button>
+
+            {/* Native calendar date picker wrapper */}
+            <div className="relative inline-block ml-1">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedDate(e.target.value);
+                }}
+                className="absolute inset-0 opacity-0 w-8 h-8 cursor-pointer"
+                title="Select alternate date"
+              />
+              <button className="flex h-8 w-8 items-center justify-center bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl transition-all shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,1)]">
+                <Settings className="h-4 w-4 text-slate-800" />
+              </button>
+            </div>
           </div>
         </div>
 
-        <input
-          type="date"
-          value={selectedDate}
-          id="diary-date-picker"
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="bg-white border-2 border-slate-900 rounded-xl px-4 py-2 font-black font-mono text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer w-full md:w-auto text-center"
-        />
+        {/* Lower Row: Rolling 7-Day Timeline Carousel */}
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 font-mono">
+          {rollingDays.map((day) => {
+            const isSelected = day.dateStr === selectedDate;
+            const isToday = day.dateStr === todayStr;
+            return (
+              <button
+                key={day.dateStr}
+                onClick={() => setSelectedDate(day.dateStr)}
+                className={`flex flex-col items-center justify-center p-2.5 rounded-2xl border-2 transition-all hover:scale-102 cursor-pointer ${
+                  isSelected
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-[3px_3px_0px_0px_rgba(249,115,22,1)]'
+                    : isToday
+                    ? 'border-orange-500 bg-orange-50/40 text-slate-900'
+                    : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
+                }`}
+              >
+                <span className={`text-[8px] font-bold tracking-tighter uppercase ${isSelected ? 'text-orange-350' : 'text-slate-400'}`}>
+                  {day.dayLabel}
+                </span>
+                <span className="text-sm font-black mt-0.5 leading-none">
+                  {day.dayNum}
+                </span>
+                
+                {/* Indicator dot showing logged items exist */}
+                {day.hasFoods && (
+                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-orange-450' : 'bg-orange-550 animate-pulse'}`}></span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Main Calories & Nutrients progress trackers */}
@@ -540,88 +693,6 @@ export default function FoodDiary({
                   </div>
                 </div>
 
-                {/* Database item portion size scaler sub-form drawer */}
-                <AnimatePresence>
-                  {selectedDbItem && (
-                    <motion.form
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="border-2 border-orange-200 bg-orange-50/20 rounded-2xl p-4 overflow-hidden flex flex-col gap-3.5"
-                      onSubmit={handleLogDbItem}
-                    >
-                      <div className="flex justify-between items-center border-b border-orange-100 pb-2">
-                        <div className="flex items-center gap-1 text-orange-600">
-                          <Sparkles className="h-4 w-4" />
-                          <span className="text-[10px] font-black uppercase font-mono tracking-wider">Configure Portion Scale</span>
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-500 truncate max-w-[120px]">{selectedDbItem.name}</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Meal Destination</label>
-                          <select
-                            value={dbMealType}
-                            onChange={(e) => setDbMealType(e.target.value as any)}
-                            className="bg-white border-2 border-slate-900 rounded-xl px-2 py-1.5 text-xs font-black text-slate-900 focus:outline-none"
-                          >
-                            <option value="breakfast">Breakfast</option>
-                            <option value="lunch">Lunch</option>
-                            <option value="dinner">Dinner</option>
-                            <option value="snack">Snack</option>
-                          </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-[9px] uppercase font-black text-slate-500 font-mono">Quantity eaten (grams)</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="5000"
-                            value={portionGrams}
-                            onChange={(e) => setPortionGrams(e.target.value)}
-                            className="bg-white border-2 border-slate-900 rounded-xl px-3 py-1.5 text-xs font-mono font-black text-slate-900 focus:outline-none"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      {/* Live scaling calculator readout panel */}
-                      <div className="bg-white border border-orange-150 p-2.5 rounded-xl flex justify-between items-center">
-                        <div className="flex flex-col">
-                          <span className="text-[8px] font-black text-slate-400 uppercase font-mono tracking-widest">SCALED CALORIES</span>
-                          <span className="text-sm font-black font-mono text-orange-650">
-                            {Math.round(selectedDbItem.caloriesPer100g * ((parseFloat(portionGrams) || 100) / 100))} kcal
-                          </span>
-                        </div>
-
-                        <div className="flex gap-2.5 text-[10px] font-mono font-black uppercase">
-                          <div className="flex flex-col items-center">
-                            <span className="text-[8px] text-rose-500">P (g)</span>
-                            <span className="text-rose-600">{Math.round(selectedDbItem.proteinPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[8px] text-amber-500">C (g)</span>
-                            <span className="text-amber-655">{Math.round(selectedDbItem.carbsPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className="text-[8px] text-sky-500">F (g)</span>
-                            <span className="text-sky-655">{Math.round(selectedDbItem.fatPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-semibold py-2 rounded-xl text-xs cursor-pointer transition-all uppercase font-mono tracking-wide"
-                      >
-                        <Check className="h-4 w-4 text-orange-450 stroke-[3px]" />
-                        Log {portionGrams || '100'}g to {dbMealType}
-                      </button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
               </div>
             ) : (
               /* Manual Entry Form */
@@ -727,7 +798,7 @@ export default function FoodDiary({
           <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-3">
             <div>
               <h4 className="text-xs font-black text-slate-900 uppercase font-mono font-bold tracking-tight">Quick Add Presets</h4>
-              <p className="text-[10px] text-slate-400 uppercase font-mono font-semibold mt-0.5">Click any common clean building meal to log</p>
+              <p className="text-[10px] text-slate-400 uppercase font-mono font-semibold mt-0.5">Click text to customize portion, or plus to log instantly</p>
             </div>
             <div className="max-h-[200px] overflow-y-auto pr-1 flex flex-col gap-2 divide-y divide-slate-100">
               {PRESET_FOODS.map((preset, i) => (
@@ -735,8 +806,11 @@ export default function FoodDiary({
                   key={i}
                   className="flex justify-between items-center py-2.5 first:pt-0 hover:bg-slate-50 px-2 rounded-xl border border-transparent hover:border-slate-100 transition-all text-xs font-bold text-slate-700"
                 >
-                  <div className="flex flex-col gap-0.5 max-w-[70%]">
-                    <span className="text-slate-900 font-extrabold text-xs">{preset.name}</span>
+                  <div
+                    onClick={() => handlePresetClick(preset, i)} 
+                    className="flex flex-col gap-0.5 max-w-[70%] cursor-pointer group flex-1"
+                  >
+                    <span className="text-slate-900 font-extrabold text-xs group-hover:text-orange-550 transition-colors">{preset.name}</span>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {preset.calories} kcal &bull; P: {preset.protein}g, C: {preset.carbs}g, F: {preset.fat}g
                     </span>
@@ -744,7 +818,7 @@ export default function FoodDiary({
                   <button
                     onClick={() => handleQuickAdd(preset)}
                     className="flex h-7.5 w-7.5 items-center justify-center rounded-lg border-2 border-slate-900 bg-orange-50 hover:bg-orange-100 text-slate-900 transition-all cursor-pointer shadow-[1px_1px_0px_0px_rgba(15,23,42,1)]"
-                    title={`Add ${preset.name}`}
+                    title={`Add ${preset.name} instantly`}
                   >
                     <Plus className="h-4.5 w-4.5 stroke-[3.5px] text-orange-600" />
                   </button>
@@ -864,6 +938,189 @@ export default function FoodDiary({
           </div>
         </div>
       </div>
+
+      {/* Absolute Full Screen Food Item Scaling Dialog Modal Portal */}
+      <AnimatePresence>
+        {selectedDbItem && (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white border-4 border-slate-900 rounded-3xl p-6 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] max-w-md w-full relative flex flex-col gap-4 overflow-hidden"
+            >
+              {/* Close Icon Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedDbItem(null)}
+                className="absolute right-4 top-4 hover:bg-slate-100 p-2 rounded-xl border-2 border-slate-900 transition-all cursor-pointer bg-white"
+              >
+                <X className="h-4 w-4 text-slate-950 stroke-[3px]" />
+              </button>
+
+              {/* Title Header */}
+              <div className="flex flex-col gap-1 pr-10">
+                <span className="text-[10px] font-black text-orange-555 uppercase tracking-widest font-mono">
+                  {selectedDbItem.brand ? `${selectedDbItem.brand} • Registry` : 'Open Food Database • Registry'}
+                </span>
+                <h3 className="text-xl font-black text-slate-900 leading-tight uppercase font-mono">
+                  {selectedDbItem.name}
+                </h3>
+              </div>
+
+              {/* Portion Selector Toggle Badges: RU / EN bilingual labels */}
+              <div className="flex flex-col gap-2 mt-2">
+                <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
+                  Выбор порции / Portion presets
+                </label>
+                <div className="grid grid-cols-2 gap-2 font-mono">
+                  {[
+                    { label: 'База 100г', grams: '100', desc: 'Reference Weight' },
+                    { label: 'Порция 150г', grams: '150', desc: 'Single Serving' },
+                    { label: 'Пачка 200г', grams: '200', desc: 'Full Pack / Tub' },
+                    { label: 'Двойная 250г', grams: '250', desc: 'Big / Double' },
+                    { label: 'Большая 300г', grams: '300', desc: 'Large Bowl' },
+                    { label: 'Макси 400г', grams: '400', desc: 'Max Meal' },
+                  ].map((presetItem) => {
+                    const active = portionGrams === presetItem.grams;
+                    return (
+                      <button
+                        key={presetItem.grams}
+                        type="button"
+                        onClick={() => setPortionGrams(presetItem.grams)}
+                        className={`p-2.5 rounded-xl border-2 text-left transition-all flex flex-col cursor-pointer ${
+                          active
+                            ? 'border-slate-900 bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                            : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-800'
+                        }`}
+                      >
+                        <span className="text-[11px] font-black">{presetItem.label}</span>
+                        <span className={`text-[8px] font-medium leading-none ${active ? 'text-orange-200' : 'text-slate-400'}`}>
+                          {presetItem.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Slider & Direct Custom grams Input Selector */}
+              <div className="flex flex-col gap-2 mt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
+                    Точный вес (граммы) / custom weight
+                  </span>
+                  <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-xl border-2 border-slate-900 font-mono text-xs font-black">
+                    <input
+                      type="number"
+                      min="1"
+                      max="5000"
+                      value={portionGrams}
+                      onChange={(e) => setPortionGrams(e.target.value)}
+                      className="w-12 bg-transparent text-right outline-none"
+                    />
+                    <span className="text-slate-500">г</span>
+                  </div>
+                </div>
+                
+                {/* slider */}
+                <input
+                  type="range"
+                  min="10"
+                  max="1000"
+                  step="5"
+                  value={parseFloat(portionGrams) || 100}
+                  onChange={(e) => setPortionGrams(e.target.value)}
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer border-2 border-slate-900 accent-orange-550"
+                />
+              </div>
+
+              {/* Destination Ingestion Category Pill Selection */}
+              <div className="flex flex-col gap-2 mt-1">
+                <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
+                  Прием пищи / Mealtimes split
+                </label>
+                <div className="grid grid-cols-4 gap-1.5 font-mono">
+                  {[
+                    { id: 'breakfast', label: 'Завтрак', icon: <Coffee className="h-3.5 w-3.5" /> },
+                    { id: 'lunch', label: 'Обед', icon: <Sun className="h-3.5 w-3.5" /> },
+                    { id: 'dinner', label: 'Ужин', icon: <Sunset className="h-3.5 w-3.5" /> },
+                    { id: 'snack', label: 'Снек', icon: <Soup className="h-3.5 w-3.5" /> },
+                  ].map((mealPill) => {
+                    const isSelected = dbMealType === mealPill.id;
+                    return (
+                      <button
+                        key={mealPill.id}
+                        type="button"
+                        onClick={() => setDbMealType(mealPill.id as any)}
+                        className={`py-2 px-1 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-slate-900 bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                            : 'border-slate-250 bg-slate-50 hover:bg-white text-slate-700 hover:border-slate-400'
+                        }`}
+                      >
+                        {mealPill.icon}
+                        <span className="text-[9px] font-black uppercase leading-none">{mealPill.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Dynamic Live Calculations readout dashboard display */}
+              <div className="bg-slate-950 text-white border-2 border-slate-950 p-4 rounded-2xl flex flex-col gap-2.5 font-mono mt-2">
+                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Scaled Food Nutrition</span>
+                  <span className="text-xs font-black text-orange-450">{portionGrams || '100'}g portion</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[8px] font-black text-slate-500 uppercase">CALORIES</span>
+                    <p className="text-2xl font-black text-white leading-none mt-1">
+                      {Math.round(selectedDbItem.caloriesPer100g * ((parseFloat(portionGrams) || 100) / 100))} kcal
+                    </p>
+                  </div>
+
+                  <div className="flex gap-4 text-center">
+                    <div>
+                      <span className="text-[8px] font-black text-rose-455 block">P</span>
+                      <span className="text-sm font-black text-rose-400 leading-none">
+                        {Math.round(selectedDbItem.proteinPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}g
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[8px] font-black text-amber-455 block">C</span>
+                      <span className="text-sm font-black text-amber-400 leading-none">
+                        {Math.round(selectedDbItem.carbsPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}g
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[8px] font-black text-sky-455 block">F</span>
+                      <span className="text-sm font-black text-sky-400 leading-none">
+                        {Math.round(selectedDbItem.fatPer100g * ((parseFloat(portionGrams) || 100) / 100) * 10) / 10}g
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Primary Neo-brutalist Logging Button */}
+              <button
+                type="button"
+                onClick={handleLogDbItem}
+                className="w-full flex items-center justify-center gap-2 bg-orange-550 hover:bg-orange-600 text-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] font-black py-4.5 rounded-2xl text-xs uppercase font-mono tracking-wider cursor-pointer hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] transition-all mt-1"
+              >
+                <Check className="h-5 w-5 stroke-[4px]" />
+                Внести {portionGrams || '100'}г в дневник! / Log Portion
+              </button>
+
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
