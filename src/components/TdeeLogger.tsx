@@ -493,7 +493,7 @@ export default function TdeeLogger({
           {chartData.length > 0 && (
             <div className="mt-4 flex flex-col gap-2.5">
               <span className="text-[10px] uppercase font-black text-slate-450 font-mono tracking-widest">Ledger Database ({logs.length} days)</span>
-              <div className="max-h-[190px] overflow-y-auto border-2 border-slate-900 rounded-2xl">
+              <div className="max-h-[190px] overflow-y-auto overflow-x-auto border-2 border-slate-905 rounded-2xl">
                 <table className="w-full text-[11px] text-left text-slate-600">
                   <thead className="bg-slate-50 text-[9px] uppercase font-mono border-b-2 border-slate-900 sticky top-0 font-bold text-slate-605">
                     <tr>

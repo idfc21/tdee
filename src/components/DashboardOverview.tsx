@@ -311,7 +311,7 @@ export default function DashboardOverview({
                 id={`bottom-nav-${tab.id}`}
                 className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all select-none cursor-pointer ${
                   active
-                    ? 'bg-slate-900 text-white shadow-[2px_2px_0px_0px_and_rgba(15,23,42,1)] scale-102 border-2 border-slate-900'
+                    ? 'bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] scale-102 border-2 border-slate-900'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-2 border-transparent'
                 }`}
               >
