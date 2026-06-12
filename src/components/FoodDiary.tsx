@@ -176,6 +176,8 @@ export default function FoodDiary({
     e.preventDefault();
     if (!foodName || !calories) return;
 
+    const activeTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
     onAddFoodLog({
       date: selectedDate,
       name: foodName,
@@ -184,6 +186,7 @@ export default function FoodDiary({
       carbs: parseInt(carbs) || 0,
       fat: parseInt(fat) || 0,
       mealType: currentSearchMealType,
+      time: activeTime,
     });
 
     // Reset fields & close popup dialog
@@ -196,6 +199,7 @@ export default function FoodDiary({
   };
 
   const handleQuickAdd = (preset: typeof PRESET_FOODS[number]) => {
+    const activeTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     onAddFoodLog({
       date: selectedDate,
       name: preset.name,
@@ -204,6 +208,7 @@ export default function FoodDiary({
       carbs: preset.carbs,
       fat: preset.fat,
       mealType: currentSearchMealType,
+      time: activeTime,
     });
     setIsSearchOpen(false);
   };
@@ -261,6 +266,7 @@ export default function FoodDiary({
 
     const grams = parseFloat(portionGrams) || 100;
     const factor = grams / 100;
+    const activeTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
     onAddFoodLog({
       date: selectedDate,
@@ -270,6 +276,7 @@ export default function FoodDiary({
       carbs: Math.round(selectedDbItem.carbsPer100g * factor * 10) / 10,
       fat: Math.round(selectedDbItem.fatPer100g * factor * 10) / 10,
       mealType: dbMealType,
+      time: activeTime,
     });
 
     setSelectedDbItem(null);
@@ -308,12 +315,12 @@ export default function FoodDiary({
   return (
     <div className="flex flex-col gap-6">
       {/* Custom Timeline Carousel & Day Switcher Panel */}
-      <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5">
+      <div className="bg-white border-2 border-slate-900 rounded-3xl p-4 sm:p-5 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5">
         
         {/* Upper Row: Fast Relative Jump Actions & Raw Picker */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-slate-900 text-white rounded-2xl border-2 border-slate-900">
+            <div className="p-2 bg-slate-900 text-white rounded-2xl border-2 border-slate-900 sm:p-2.5">
               <Calendar className="h-5 w-5 text-orange-450" />
             </div>
             <div>
@@ -323,12 +330,12 @@ export default function FoodDiary({
           </div>
 
           {/* Quick Relative jump buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 font-mono">
+          <div className="flex flex-wrap items-center gap-1 font-mono">
             <button
               onClick={() => setSelectedDate(dayBeforeYesterdayStr)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
                 selectedDate === dayBeforeYesterdayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
                   : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
               }`}
             >
@@ -336,9 +343,9 @@ export default function FoodDiary({
             </button>
             <button
               onClick={() => setSelectedDate(yesterdayStr)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
                 selectedDate === yesterdayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
                   : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
               }`}
             >
@@ -346,9 +353,9 @@ export default function FoodDiary({
             </button>
             <button
               onClick={() => setSelectedDate(todayStr)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
                 selectedDate === todayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
                   : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
               }`}
             >
@@ -356,9 +363,9 @@ export default function FoodDiary({
             </button>
             <button
               onClick={() => setSelectedDate(tomorrowStr)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
+              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
                 selectedDate === tomorrowStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
                   : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
               }`}
             >
@@ -366,7 +373,7 @@ export default function FoodDiary({
             </button>
 
             {/* Native calendar date picker wrapper */}
-            <div className="relative inline-block ml-1">
+            <div className="relative inline-block ml-0.5">
               <input
                 type="date"
                 value={selectedDate}
@@ -376,7 +383,7 @@ export default function FoodDiary({
                 className="absolute inset-0 opacity-0 w-8 h-8 cursor-pointer"
                 title="Select alternate date"
               />
-              <button className="flex h-8 w-8 items-center justify-center bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl transition-all shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,1)]">
+              <button className="flex h-8 w-8 items-center justify-center bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl transition-all shadow-[1px_1px_0px_0px_rgba(15,23,42,1)]">
                 <Settings className="h-4 w-4 text-slate-800" />
               </button>
             </div>
@@ -384,7 +391,7 @@ export default function FoodDiary({
         </div>
 
         {/* Lower Row: Rolling 7-Day Timeline Carousel */}
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 font-mono">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 font-mono">
           {rollingDays.map((day) => {
             const isSelected = day.dateStr === selectedDate;
             const isToday = day.dateStr === todayStr;
@@ -392,9 +399,9 @@ export default function FoodDiary({
               <button
                 key={day.dateStr}
                 onClick={() => setSelectedDate(day.dateStr)}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-2xl border-2 transition-all hover:scale-102 cursor-pointer ${
+                className={`flex flex-col items-center justify-center p-1 py-1.5 xs:p-2.5 sm:p-2.5 rounded-xl border-2 transition-all hover:scale-102 cursor-pointer ${
                   isSelected
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-[3px_3px_0px_0px_rgba(249,115,22,1)]'
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)] sm:shadow-[3px_3px_0px_0px_rgba(249,115,22,1)]'
                     : isToday
                     ? 'border-orange-500 bg-orange-50/40 text-slate-900'
                     : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
@@ -420,40 +427,40 @@ export default function FoodDiary({
       {/* Main Calories & Nutrients progress trackers */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         {/* Main Calorie Ring Progress Card */}
-        <div className="lg:col-span-2 bg-slate-900 border-2 border-slate-900 text-white rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+        <div className="lg:col-span-2 bg-slate-900 border-2 border-slate-900 text-white rounded-3xl p-4 sm:p-6 shadow-[3px_3px_0px_0px_rgba(249,115,22,1)] sm:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] relative overflow-hidden flex flex-col justify-between min-h-[220px]">
           <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-orange-500/10 blur-2xl"></div>
           
-          <div className="flex justify-between items-center relative z-10">
-            <span className="text-[10px] font-black tracking-widest text-slate-400 font-mono">ENERGY CONJECTURE BOUNDS</span>
-            <span className="text-[9px] font-black bg-orange-650 text-white px-2.5 py-1 rounded-full border border-orange-500/30 uppercase font-mono">
+          <div className="flex justify-between items-center relative z-10 font-mono">
+            <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-slate-400">ENERGY CONJECTURE BOUNDS</span>
+            <span className="text-[8px] sm:text-[9px] font-black bg-orange-650 text-white px-2.5 py-1 rounded-full border border-orange-500/30 uppercase">
               Calorie Budget
             </span>
           </div>
 
-          <div className="my-3 flex items-center justify-between relative z-10 pr-2">
+          <div className="my-3 flex items-center justify-between relative z-10 pr-1 gap-2">
             <div>
-              <p className="text-5xl font-mono font-black tracking-tight text-white leading-none">
+              <p className="text-4xl sm:text-5xl font-mono font-black tracking-tight text-white leading-none">
                 {totals.calories.toLocaleString()}
               </p>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1.5">
                 KCAL logged out of {targetCalories.toLocaleString()} Target
               </p>
             </div>
             
-            <div className="text-right">
+            <div className="text-right shrink-0">
               {calRemaining >= 0 ? (
                 <>
-                  <p className="text-3xl font-mono font-black text-emerald-400">
+                  <p className="text-2xl sm:text-3xl font-mono font-black text-emerald-400">
                     +{calRemaining.toLocaleString()}
                   </p>
-                  <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Left to consume</p>
+                  <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-bold tracking-widest">Left to consume</p>
                 </>
               ) : (
                 <>
-                  <p className="text-3xl font-mono font-black text-rose-400">
+                  <p className="text-2xl sm:text-3xl font-mono font-black text-rose-400">
                     {calRemaining.toLocaleString()}
                   </p>
-                  <p className="text-[9px] text-slate-400 uppercase font-bold tracking-widest">Calorie Surplus</p>
+                  <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-bold tracking-widest">Calorie Surplus</p>
                 </>
               )}
             </div>
@@ -478,7 +485,7 @@ export default function FoodDiary({
         {/* Macros Progress Panels */}
         <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Protein */}
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
+          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start">
                 <span className="text-[9px] font-black tracking-wider text-rose-500 uppercase font-mono">PROTEIN SHIFT</span>
@@ -502,7 +509,7 @@ export default function FoodDiary({
           </div>
 
           {/* Carbs */}
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
+          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start">
                 <span className="text-[9px] font-black tracking-wider text-amber-500 uppercase font-mono">CARBOHYDRATES</span>
@@ -526,7 +533,7 @@ export default function FoodDiary({
           </div>
 
           {/* Fat */}
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-5 shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
+          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start">
                 <span className="text-[9px] font-black tracking-wider text-sky-500 uppercase font-mono">LIPIDS / FATS</span>
@@ -552,8 +559,8 @@ export default function FoodDiary({
       </div>
 
       {/* Mealtimes Vertical List (MacroFactor-style direct layout) */}
-      <div className="flex flex-col gap-5">
-        <div className="flex justify-between items-center bg-white border-2 border-slate-900 rounded-3xl p-4 md:p-5 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 gap-3 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
           <div>
             <span className="text-[9px] tracking-widest uppercase font-black font-mono text-orange-655 block">ДНЕВНИК ПИТАНИЯ • DIET TIMELINE</span>
             <span className="text-sm font-black text-slate-900 uppercase tracking-tight block">Метаболический лог еды / Mealtimes Summary</span>
@@ -566,14 +573,14 @@ export default function FoodDiary({
               }
             }}
             disabled={todaysFoods.length === 0}
-            className="flex items-center gap-1.5 bg-slate-50 border-2 border-slate-900 hover:bg-rose-50 hover:text-rose-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase font-mono transition-all cursor-pointer shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] disabled:opacity-50 disabled:cursor-not-allowed text-slate-700"
+            className="flex items-center justify-center gap-1.5 bg-slate-50 border-2 border-slate-900 hover:bg-rose-50 hover:text-rose-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase font-mono transition-all cursor-pointer shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,1)] disabled:opacity-50 disabled:cursor-not-allowed text-slate-705 w-full sm:w-auto font-bold"
           >
             <RotateCcw className="h-3.5 w-3.5" /> Сбросить день / Clear Day
           </button>
         </div>
 
         {/* The 4 main compartments (Breakfast, Lunch, Dinner, Snack) */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {(Object.keys(mealGroups) as Array<keyof typeof mealGroups>).map((groupKey) => {
             const group = mealGroups[groupKey];
             const groupTotals = group.items.reduce(
@@ -594,21 +601,52 @@ export default function FoodDiary({
               snack: 'Перекус / Snack'
             };
 
+            const hasItems = group.items.length > 0;
+
+            if (!hasItems) {
+              return (
+                <button
+                  key={groupKey}
+                  onClick={() => {
+                    setCurrentSearchMealType(groupKey);
+                    setDbMealType(groupKey);
+                    setMealType(groupKey);
+                    setIsSearchOpen(true);
+                    setSelectedDbItem(null);
+                    setSearchQuery('');
+                  }}
+                  className="w-full border-2 border-dashed border-slate-300 hover:border-slate-900 bg-slate-50/50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl transition-all flex items-center justify-between text-slate-500 hover:text-slate-950 font-mono text-xs cursor-pointer group select-none shadow-[2px_2px_0px_0px_rgba(0,0,0,0.02)] hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="p-1 sm:p-1.5 bg-white border border-slate-200 rounded-lg group-hover:border-slate-900 transition-colors">
+                      {group.icon}
+                    </span>
+                    <span className="font-extrabold uppercase tracking-wider text-[10px] sm:text-[11px] text-slate-700 group-hover:text-slate-950">
+                      + Добавить {groupKey === 'breakfast' ? 'Завтрак' : groupKey === 'lunch' ? 'Обед' : groupKey === 'dinner' ? 'Ужин' : 'Перекус'}
+                    </span>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] font-bold text-slate-450 group-hover:text-slate-600 transition-colors uppercase">
+                    {groupKey === 'breakfast' ? 'Breakfast' : groupKey === 'lunch' ? 'Lunch' : groupKey === 'dinner' ? 'Dinner' : 'Snack'}
+                  </span>
+                </button>
+              );
+            }
+
             return (
               <div
                 key={groupKey}
-                className="bg-white border-2 border-slate-900 rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex flex-col transition-all"
+                className="bg-white border-2 border-slate-900 rounded-2xl overflow-hidden shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex flex-col transition-all"
               >
                 {/* Meal Compartment Header Panel */}
-                <div className="bg-slate-900 text-white px-4 py-3 flex justify-between items-center flex-wrap gap-2">
+                <div className="bg-slate-900 text-white px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center flex-wrap gap-2">
                   <div className="flex items-center gap-2 font-black text-xs uppercase font-mono">
                     {group.icon}
                     <span className="tracking-tight">{mealTitles[groupKey]}</span>
                   </div>
 
                   {/* Subtotal macros summaries and interactive Log action button */}
-                  <div className="flex items-center gap-3">
-                    <div className="hidden sm:flex items-center gap-2.5 font-mono text-[9px] font-bold text-slate-350 uppercase">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[8.5px] sm:text-[9.5px] font-bold text-slate-350 uppercase">
                       <span className="text-rose-400">P: {Math.round(groupTotals.protein * 10) / 10}g</span>
                       <span>&bull;</span>
                       <span className="text-amber-400">C: {Math.round(groupTotals.carbs * 10) / 10}g</span>
@@ -616,7 +654,7 @@ export default function FoodDiary({
                       <span className="text-sky-400">F: {Math.round(groupTotals.fat * 10) / 10}g</span>
                     </div>
 
-                    <span className="font-mono text-[10px] font-black bg-white/20 px-2.5 py-0.5 rounded text-orange-200">
+                    <span className="font-mono text-[9px] sm:text-[10px] font-black bg-white/20 px-2 py-0.5 rounded text-orange-200">
                       {groupTotals.calories} kcal
                     </span>
 
@@ -629,31 +667,32 @@ export default function FoodDiary({
                         setSelectedDbItem(null);
                         setSearchQuery('');
                       }}
-                      className="flex items-center gap-1 bg-orange-550 hover:bg-orange-600 text-white border border-orange-500 px-2.5 py-1 rounded-xl text-[9px] font-black uppercase font-mono shadow-[1px_1px_0px_0px_rgba(0,0,0,0.25)] cursor-pointer transition-transform hover:scale-102"
+                      className="flex items-center gap-1 bg-orange-550 hover:bg-orange-600 text-white border border-orange-500 px-2 py-0.5 sm:py-1 rounded-xl text-[8.5px] sm:text-[9.5px] font-black uppercase font-mono shadow-[1px_1px_0px_0px_rgba(0,0,0,0.25)] cursor-pointer transition-transform hover:scale-102"
                     >
                       <Plus className="h-3 w-3 stroke-[3px]" />
-                      <span>+ ЕДА / ADD</span>
+                      <span>+ Еда / Add</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Logged Items Rows list */}
+                {/* Logged Food Rows list with beautiful timestamps in MacroFactor styling */}
                 <div className="divide-y divide-slate-100 bg-white">
-                  {group.items.length === 0 ? (
-                    <div className="p-4 text-center text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest bg-slate-50/40">
-                      Нет записей / No logged foods &mdash; кликните + ЕДА
-                    </div>
-                  ) : (
-                    group.items.map((food) => (
-                      <div
-                        key={food.id}
-                        className="p-3.5 flex justify-between items-center hover:bg-slate-50/70 transition-colors"
-                      >
-                        <div className="flex flex-col gap-0.5 min-w-0 flex-1 pr-3 font-mono">
+                  {group.items.map((food) => (
+                    <div
+                      key={food.id}
+                      className="p-2.5 sm:p-3 flex justify-between items-center hover:bg-slate-50/70 transition-colors gap-2"
+                    >
+                      <div className="flex items-start gap-2 min-w-0 flex-1 font-mono">
+                        {/* Compact micro timestamp tag */}
+                        <span className="text-[9px] sm:text-[10px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 mt-0.5 font-bold shrink-0 self-start">
+                          {food.time || '12:00'}
+                        </span>
+
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                           <span className="text-xs font-black text-slate-900 leading-tight block truncate">
                             {food.name}
                           </span>
-                          <span className="text-[9px] font-bold text-slate-450 uppercase tracking-widest mt-1 flex gap-2">
+                          <span className="text-[8.5px] sm:text-[9px] font-bold text-slate-450 uppercase tracking-widest mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
                             <span>Б: {food.protein}г</span>
                             <span>&bull;</span>
                             <span>У: {food.carbs}г</span>
@@ -661,22 +700,22 @@ export default function FoodDiary({
                             <span>Ж: {food.fat}г</span>
                           </span>
                         </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs font-black font-mono text-orange-655 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded">
-                            {food.calories} kcal
-                          </span>
-                          <button
-                            onClick={() => onDeleteFoodLog(food.id)}
-                            className="bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-100 p-1.5 rounded-lg transition-all cursor-pointer"
-                            title="Удалить / Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 stroke-[2.5px]" />
-                          </button>
-                        </div>
                       </div>
-                    ))
-                  )}
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-black font-mono text-orange-655 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded">
+                          {food.calories} kcal
+                        </span>
+                        <button
+                          onClick={() => onDeleteFoodLog(food.id)}
+                          className="bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-100 p-1.5 rounded-lg transition-all cursor-pointer"
+                          title="Удалить / Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 stroke-[2.5px]" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );

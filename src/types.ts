@@ -60,6 +60,7 @@ export interface FoodItemLog {
   carbs: number;   // in grams
   fat: number;     // in grams
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  time?: string;   // e.g. "13:45"
 }
 
 export interface MealAllocation {

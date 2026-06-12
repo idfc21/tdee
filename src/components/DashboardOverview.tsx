@@ -298,7 +298,7 @@ export default function DashboardOverview({
 
       {/* Persistent Mobile Bottom Navigation Bar - Sticky position satisfying user's exact menu expectation */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-4 border-slate-900 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] block md:hidden">
-        <div className="max-w-md mx-auto px-4 py-2 flex justify-between items-center gap-1 font-mono">
+        <div className="max-w-md mx-auto px-2 py-1.5 flex justify-between items-center gap-0.5 font-mono">
           {tabList.map((tab) => {
             const active = activeTab === tab.id;
             return (
@@ -309,16 +309,16 @@ export default function DashboardOverview({
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 id={`bottom-nav-${tab.id}`}
-                className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all select-none cursor-pointer ${
+                className={`flex-1 flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none cursor-pointer ${
                   active
-                    ? 'bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] scale-102 border-2 border-slate-900'
+                    ? 'bg-slate-900 text-white shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,1)] scale-102 border-2 border-slate-900'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 border-2 border-transparent'
                 }`}
               >
                 <div className="text-slate-900 group-hover:scale-110">
-                  <span className={active ? 'text-white' : 'text-slate-700'}>{tab.icon}</span>
+                  <span className={active ? 'text-white' : 'text-slate-705'}>{tab.icon}</span>
                 </div>
-                <span className={`text-[9px] font-black tracking-tighter uppercase mt-1 leading-none ${active ? 'text-orange-450' : 'text-slate-500'}`}>
+                <span className={`text-[8px] min-360:text-[9px] font-black tracking-tighter uppercase mt-1 leading-none ${active ? 'text-orange-450' : 'text-slate-500'}`}>
                   {tab.miniLabel}
                 </span>
               </button>
