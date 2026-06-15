@@ -696,26 +696,24 @@ export default function FoodDiary({
       {/* Dynamic Absolute Full Screen Search Dashboard Modal */}
       <AnimatePresence>
         {isSearchOpen && (
-          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto w-full">
+          <div className="fixed inset-0 bg-slate-50 z-[120] overflow-y-auto w-full h-full">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 max-w-lg w-full relative flex flex-col gap-3.5 max-h-[92vh] overflow-y-auto"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              className="bg-white min-h-screen w-full flex flex-col gap-5 p-4 sm:p-8 max-w-3xl mx-auto border-x border-slate-200 shadow-xl relative"
             >
-              {/* Top Row Title and Close Trigger */}
-              <div className="flex justify-between items-start border-b-2 border-slate-100 pb-3.5">
-                <div>
-                  <span className="text-[9px] font-black tracking-widest uppercase font-mono text-orange-555 block">
-                    {lang === 'ru' ? 'Добавить пищу' : 'Food tracking'}
+              {/* Ultra compact header row to maximize search / layout space */}
+              <div className="flex justify-between items-center border-b border-slate-150 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black tracking-widest uppercase font-mono bg-orange-100 text-orange-700 px-2.5 py-1 rounded-lg">
+                    {currentSearchMealType === 'breakfast' ? (lang === 'ru' ? 'Завтрак' : 'Breakfast') :
+                     currentSearchMealType === 'lunch' ? (lang === 'ru' ? 'Обед' : 'Lunch') :
+                     currentSearchMealType === 'dinner' ? (lang === 'ru' ? 'Ужин' : 'Dinner') : (lang === 'ru' ? 'Перекус' : 'Snack')}
                   </span>
-                  <h3 className="text-lg font-black text-slate-900 uppercase font-mono">
-                    {lang === 'ru' ? 'Линейка: ' : 'Target: '} {
-                      currentSearchMealType === 'breakfast' ? (lang === 'ru' ? 'Завтрак' : 'Breakfast') :
-                      currentSearchMealType === 'lunch' ? (lang === 'ru' ? 'Обед' : 'Lunch') :
-                      currentSearchMealType === 'dinner' ? (lang === 'ru' ? 'Ужин' : 'Dinner') : (lang === 'ru' ? 'Перекус' : 'Snack')
-                    }
-                  </h3>
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider">
+                    {lang === 'ru' ? 'Запись еды' : 'Log Food'}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -723,90 +721,63 @@ export default function FoodDiary({
                     setIsSearchOpen(false);
                     setSelectedDbItem(null);
                   }}
-                  className="hover:bg-slate-50 p-1 rounded-lg border border-slate-200 transition-colors cursor-pointer bg-white text-slate-700 flex items-center justify-center"
+                  className="hover:bg-slate-100 py-1.5 px-3 rounded-xl border border-slate-200 transition-all cursor-pointer bg-white text-slate-700 text-[11px] font-black font-mono flex items-center gap-1.5 active:scale-95"
                 >
-                  <X className="h-4.5 w-4.5 stroke-[3px]" />
+                  <X className="h-4 w-4 stroke-[3px]" />
+                  <span>{lang === 'ru' ? 'Закрыть' : 'Close'}</span>
                 </button>
               </div>
 
               {/* Step State machine switcher */}
               {selectedDbItem ? (
                 /* Step 2: Configure Portion weight & Log details */
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-5">
                   
                   {/* Back button to search list */}
                   <button
                     type="button"
                     onClick={() => setSelectedDbItem(null)}
-                    className="self-start text-[10px] font-bold uppercase font-mono border border-slate-200 px-3 py-1 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                    className="self-start text-[10.5px] font-black uppercase font-mono border border-slate-200 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer flex items-center gap-1"
                   >
-                    &larr; {lang === 'ru' ? 'Назад' : 'Back'}
+                    <span>&larr;</span>
+                    <span>{lang === 'ru' ? 'Назад к поиску' : 'Back to search'}</span>
                   </button>
 
-                  <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex flex-col gap-1.5">
                     <span className="text-[10px] font-black text-orange-555 uppercase tracking-widest font-mono block">
                       {selectedDbItem.brand ? `${selectedDbItem.brand} • Registry` : 'Open Food Database • Registry'}
                     </span>
-                    <h4 className="text-base font-black text-slate-900 leading-tight uppercase font-mono">
+                    <h4 className="text-xl font-black text-slate-900 leading-tight uppercase font-mono">
                       {selectedDbItem.name}
                     </h4>
                   </div>
 
-                  {/* Sizer preset buttons */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
-                      {lang === 'ru' ? 'Порции' : 'Portion presets'}
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 font-mono">
-                      {[
-                        { label: lang === 'ru' ? 'База 100г' : 'Reference 100g', grams: '100', desc: 'Reference Weight' },
-                        { label: lang === 'ru' ? 'Порция 150г' : 'Serving 150g', grams: '150', desc: 'Single Serving' },
-                        { label: lang === 'ru' ? 'Пачка 200г' : 'Pack 200g', grams: '200', desc: 'Full Pack / Tub' },
-                        { label: lang === 'ru' ? 'Двойная 250г' : 'Double 250g', grams: '250', desc: 'Big / Double' },
-                        { label: lang === 'ru' ? 'Большая 300г' : 'Large 300g', grams: '300', desc: 'Large Bowl' },
-                        { label: lang === 'ru' ? 'Макси 400г' : 'Max 400g', grams: '400', desc: 'Max Meal' },
-                      ].map((presetItem) => {
-                        const active = portionGrams === presetItem.grams;
-                        return (
-                          <button
-                            key={presetItem.grams}
-                            type="button"
-                            onClick={() => setPortionGrams(presetItem.grams)}
-                            className={`p-2 rounded-xl border text-left transition-colors flex flex-col cursor-pointer ${
-                              active
-                                ? 'border-blue-500 bg-blue-50 text-blue-600 font-bold'
-                                : 'border-slate-150 bg-slate-50 hover:bg-white text-slate-800'
-                            }`}
-                          >
-                            <span className="text-[11px] font-black">{presetItem.label}</span>
-                            <span className={`text-[8px] font-medium leading-none ${active ? 'text-orange-200' : 'text-slate-400'}`}>
-                              {presetItem.desc}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Fine slider & manual grams control */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
-                        {lang === 'ru' ? 'Вес (граммы)' : 'Weight (grams)'}
+                  {/* Spectacular Big Keyboard Weight Entry Input Box */}
+                  <div className="flex flex-col gap-3">
+                    <div className="bg-slate-50 hover:bg-slate-100/60 border-2 border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 transition-colors">
+                      <span className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest text-center">
+                        {lang === 'ru' ? 'УКАЖИТЕ ВЕС В ГРАММАХ (РУЧНОЙ ВВОД)' : 'ENTER PORTION WEIGHT IN GRAMS'}
                       </span>
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-200 font-mono text-xs font-bold">
+                      
+                      <div className="flex items-center justify-center gap-2.5 font-mono">
                         <input
                           type="number"
                           min="1"
                           max="5000"
                           value={portionGrams}
                           onChange={(e) => setPortionGrams(e.target.value)}
-                          className="w-12 bg-transparent text-right outline-none"
+                          className="w-32 bg-white border-2 border-slate-350 focus:border-blue-600 rounded-xl py-2 px-3 text-center text-3xl font-extrabold text-slate-900 focus:outline-none transition-all shadow-md focus:shadow-blue-100 placeholder-slate-300"
+                          placeholder="100"
+                          autoFocus
                         />
-                        <span className="text-slate-500">{lang === 'ru' ? 'г' : 'g'}</span>
+                        <span className="text-xl font-extrabold text-slate-500 uppercase">{lang === 'ru' ? 'г' : 'g'}</span>
                       </div>
+                      
+                      <p className="text-[10px] text-slate-400 font-bold font-mono uppercase tracking-wide text-center">
+                        {lang === 'ru' ? 'Просто напишите вес на клавиатуре (наиболее частый выбор)' : 'Raw numeric keyboard typing (preferred)'}
+                      </p>
                     </div>
-                    
+
                     <input
                       type="range"
                       min="10"
@@ -814,8 +785,42 @@ export default function FoodDiary({
                       step="5"
                       value={parseFloat(portionGrams) || 100}
                       onChange={(e) => setPortionGrams(e.target.value)}
-                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-550"
+                      className="w-full h-1.5 bg-slate-150 rounded-lg appearance-none cursor-pointer accent-blue-550"
                     />
+                  </div>
+
+                  {/* Sizer preset buttons */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
+                      {lang === 'ru' ? 'Или выберите порцию в одно касание' : 'Or tap a portion preset'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2.5 font-mono">
+                      {[
+                        { label: lang === 'ru' ? 'База 100г' : 'Reference 100g', grams: '100', desc: lang === 'ru' ? 'Стандарт' : 'Standard' },
+                        { label: lang === 'ru' ? 'Порция 150г' : 'Serving 150g', grams: '150', desc: lang === 'ru' ? 'Средняя порция' : 'Average serving' },
+                        { label: lang === 'ru' ? 'Пачка 200г' : 'Pack 200g', grams: '200', desc: lang === 'ru' ? 'Целая упаковка' : 'Full packet' },
+                        { label: lang === 'ru' ? 'Большая 300г' : 'Large 300g', grams: '300', desc: lang === 'ru' ? 'Солидный объем' : 'Big serving' },
+                      ].map((presetItem) => {
+                        const active = portionGrams === presetItem.grams;
+                        return (
+                          <button
+                            key={presetItem.grams}
+                            type="button"
+                            onClick={() => setPortionGrams(presetItem.grams)}
+                            className={`p-3 rounded-xl border text-left transition-colors flex flex-col cursor-pointer ${
+                              active
+                                ? 'border-blue-500 bg-blue-50 text-blue-600 font-bold'
+                                : 'border-slate-150 bg-slate-50 hover:bg-white text-slate-800'
+                            }`}
+                          >
+                            <span className="text-[11.5px] font-black">{presetItem.label}</span>
+                            <span className={`text-[8.5px] font-semibold leading-none ${active ? 'text-orange-655' : 'text-slate-400'}`}>
+                              {presetItem.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Destination meal picker */}
@@ -990,7 +995,7 @@ export default function FoodDiary({
                           Результаты поиска ({dbResults.length})
                         </span>
                         
-                        <div className="max-h-[180px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-1 flex flex-col gap-1 pr-1 font-mono">
+                        <div className="max-h-[380px] sm:max-h-[440px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-1 flex flex-col gap-1 pr-1 font-mono">
                           {dbResults.length === 0 ? (
                             <div className="py-8 flex flex-col items-center justify-center text-center gap-1.5 bg-white rounded-xl border border-slate-200">
                               <Utensils className="h-6 w-6 text-slate-300 animate-pulse" />
@@ -1186,10 +1191,7 @@ export default function FoodDiary({
                           type="text"
                           placeholder={lang === 'ru' ? 'Шашлык, макароны, творог 5%...' : 'Chicken, pasta, cottage cheese 5%...'}
                           value={foodName}
-                          onChange={(e) => {
-                            setFoodName(e.target.value);
-                            setShowMacroWarning(false);
-                          }}
+                          onChange={(e) => setFoodName(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500 font-mono"
                           required
                         />
@@ -1218,10 +1220,7 @@ export default function FoodDiary({
                             max="5000"
                             placeholder="320"
                             value={calories}
-                            onChange={(e) => {
-                              setCalories(e.target.value);
-                              setShowMacroWarning(false);
-                            }}
+                            onChange={(e) => setCalories(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 font-mono focus:outline-none"
                             required
                           />
@@ -1241,10 +1240,7 @@ export default function FoodDiary({
                               min="0"
                               placeholder="25"
                               value={protein}
-                              onChange={(e) => {
-                                setProtein(e.target.value);
-                                setShowMacroWarning(false);
-                              }}
+                              onChange={(e) => setProtein(e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-[11px] font-semibold text-center text-slate-900 focus:outline-none"
                             />
                           </div>
@@ -1256,10 +1252,7 @@ export default function FoodDiary({
                               min="0"
                               placeholder="30"
                               value={carbs}
-                              onChange={(e) => {
-                                setCarbs(e.target.value);
-                                setShowMacroWarning(false);
-                              }}
+                              onChange={(e) => setCarbs(e.target.value)}
                               className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-[11px] font-semibold text-center text-slate-900 focus:outline-none"
                             />
                           </div>
