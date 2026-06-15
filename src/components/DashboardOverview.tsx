@@ -121,17 +121,18 @@ export default function DashboardOverview({
   const [isGdriveSyncing, setIsGdriveSyncing] = useState<boolean>(false);
 
   const handleGDriveConnect = async () => {
-    if (!gdriveClientId.trim()) {
+    const trimmedId = gdriveClientId.trim();
+    if (!trimmedId) {
       setGdriveError(lang === 'ru' ? 'Пожалуйста, введите корректный Google Client ID' : 'Please provide a valid Google Client ID');
       return;
     }
     setGdriveStatus('connecting');
     setGdriveError(null);
     try {
-      const token = await startGoogleAuth(gdriveClientId);
+      const token = await startGoogleAuth(trimmedId);
       setGdriveToken(token);
       setGdriveStatus('connected');
-      localStorage.setItem('gdrive_client_id', gdriveClientId);
+      localStorage.setItem('gdrive_client_id', trimmedId);
       
       // Auto look for existing backup file on cloud
       try {
@@ -261,6 +262,7 @@ export default function DashboardOverview({
   const [loggedWeightDate, setLoggedWeightDate] = useState(new Date().toISOString().split('T')[0]);
   const [loggedNotes, setLoggedNotes] = useState('');
   const [weightSaveSuccess, setWeightSaveSuccess] = useState(false);
+  const [copiedUri, setCopiedUri] = useState(false);
 
   // Directly pass meal activation triggers straight into the Diary search
   const [initialMealTrigger, setInitialMealTrigger] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack' | null>(null);
@@ -578,6 +580,35 @@ export default function DashboardOverview({
             >
               {subPage === 'none' ? (
                 <>
+                  {logs.some(log => log.id.startsWith('mock-')) && (
+                    <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-sans">
+                      <div className="flex gap-3 items-start">
+                        <span className="text-xl">📊</span>
+                        <div>
+                          <h4 className="text-xs font-black text-amber-900 uppercase tracking-tight font-mono">
+                            {lang === 'ru' ? 'Включен демонстрационный режим' : 'Demo Mode Active'}
+                          </h4>
+                          <p className="text-[11px] text-amber-800 leading-normal mt-1">
+                            {lang === 'ru'
+                              ? 'Для наглядности графиков и формул мы временно загрузили 15 дней примерных данных веса и ккал. Нажмите кнопку справа, чтобы удалить их и начать вводить свои реальные показатели.'
+                              : 'To help visualize metabolic curves, we have loaded 15 days of demo logs. Press the button to delete them and start logging your real metrics.'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(lang === 'ru' ? 'Вы уверены, что хотите удалить демонстрационные данные за 15 дней?' : 'Are you sure you want to clear the 15-day demonstration data?')) {
+                            onUpdateLogs(logs.filter(l => !l.id.startsWith('mock-')));
+                          }
+                        }}
+                        className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-mono font-bold text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-xl transition-colors cursor-pointer"
+                      >
+                        {lang === 'ru' ? 'Удалить демо-данные' : 'Delete Demo Data'}
+                      </button>
+                    </div>
+                  )}
+
                   {/* Row A: Weekly Nutrition Columns Pillars Chart (Inspired by premium layouts) */}
                   <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 font-mono">
                     <div className="flex items-center justify-between border-b-2 border-slate-100 pb-2">
@@ -1617,29 +1648,88 @@ export default function DashboardOverview({
 
                       {/* Config & connection trigger */}
                       {gdriveStatus !== 'connected' && gdriveStatus !== 'connecting' ? (
-                        <div className="flex flex-col gap-2.5">
-                          <div className="flex flex-col gap-1">
-                            <label className="text-[8px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
                               Google Client ID
                             </label>
                             <input
                               type="text"
                               value={gdriveClientId}
                               onChange={(e) => setGdriveClientId(e.target.value)}
-                              placeholder="342674987019-..."
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-[11px] text-slate-700 font-mono focus:outline-none"
+                              placeholder="342674987019-xxx.apps.googleusercontent.com"
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2.5 text-[11px] text-slate-705 font-mono focus:outline-none focus:ring-1 focus:ring-slate-450"
                             />
-                            <p className="text-[10px] text-slate-400 leading-normal">
-                              {lang === 'ru'
-                                ? 'Стандартный sandbox Client ID предустановлен. Нажмите кнопку ниже для открытия безопасного окна авторизации.'
-                                : 'A sandbox Client ID is pre-populated. Press connect to authorize with Google drives securely.'}
-                            </p>
+                            
+                            {/* Copy URI card */}
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col gap-1.5 font-mono text-[10px] text-slate-600 mt-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-bold text-slate-500 uppercase tracking-wider text-[8px]">
+                                  {lang === 'ru' ? 'СКОПИРУЙТЕ ЭТОТ АДРЕС (URL):' : 'COPY THIS ADDRESS (URL):'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(window.location.origin);
+                                    setCopiedUri(true);
+                                    setTimeout(() => setCopiedUri(false), 2000);
+                                  }}
+                                  className="text-[10px] text-blue-600 hover:text-blue-700 hover:underline font-bold font-sans flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copiedUri ? (
+                                    <span className="text-emerald-600 font-bold">{lang === 'ru' ? 'Скопировано!' : 'Copied!'}</span>
+                                  ) : (
+                                    <span>{lang === 'ru' ? 'Скопировать адрес' : 'Copy URL'}</span>
+                                  )}
+                                </button>
+                              </div>
+                              <div className="bg-white border border-slate-150 py-1.5 px-2.5 rounded-lg text-slate-800 font-mono text-xs select-all break-all leading-normal font-semibold">
+                                {typeof window !== 'undefined' ? window.location.origin : 'https://...'}
+                              </div>
+                              <p className="text-[9px] text-slate-450 font-sans leading-normal mt-0.5">
+                                {lang === 'ru'
+                                  ? '💡 Если вы настраиваете Google Console на компьютере: нажмите «Скопировать адрес» на телефоне и отправьте его себе (в Избранное Telegram/Viber/WhatsApp или на email), затем вставьте его в настройки Google.'
+                                  : '💡 If configuring Google Console on your PC: click "Copy URL" on your phone, send it to yourself (e.g., Telegram Saved Messages, WhatsApp, or email), then paste it into Google Console.'}
+                              </p>
+                            </div>
+
+                            {/* Info Box */}
+                            <div className="bg-slate-50/80 border border-slate-200 p-3 rounded-xl text-[11px] leading-relaxed text-slate-650 flex flex-col gap-2 font-sans mt-2.5">
+                              <p className="font-black text-xs text-slate-900 border-b border-slate-150 pb-1 flex items-center gap-1.5 font-mono">
+                                🔑 {lang === 'ru' ? 'Инструкция для входа Google Drive' : 'Google Drive Auth Instructions'}
+                              </p>
+                              {lang === 'ru' ? (
+                                <div className="space-y-1.5 text-[10px] text-slate-600 leading-normal">
+                                  <div className="text-slate-500 italic">
+                                    Предустановленный демонстрационный Client ID часто выдает ошибку 'OAuth client not found', так как Google требует точного совпадения адреса. Чтобы исправить это и запустить синхронизацию:
+                                  </div>
+                                  <p><strong>1.</strong> Перейдите на сайт <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold">Google Cloud Console</a> и создайте бесплатный проект.</p>
+                                  <p><strong>2.</strong> Зайдите в <strong>APIs & Services</strong> &rarr; <strong>OAuth consent screen</strong>, выберите <em>External</em>, впишите ваше имя и email.</p>
+                                  <p><strong>3.</strong> Раздел <strong>Credentials</strong> &rarr; <strong>Create Credentials</strong> &rarr; <strong>OAuth client ID</strong>. Тип приложения: <strong>Web Application</strong>.</p>
+                                  <p><strong>4.</strong> В поле <strong>Authorized JavaScript origins</strong> скопируйте и вставьте адрес выше.</p>
+                                  <p><strong>5.</strong> В поле <strong>Authorized redirect URIs</strong> вставьте тот же адрес.</p>
+                                  <p><strong>6.</strong> Скопируйте сгенерированный Google Client ID, сохраните в поле ввода выше и нажмите кнопку ниже!</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5 text-[10px] text-slate-600 leading-normal">
+                                  <div className="text-slate-500 italic">
+                                    The prefilled sandbox Client ID may report 'OAuth client not found' because Google requires the redirect URI to match your app URL perfectly. To connect:
+                                  </div>
+                                  <p><strong>1.</strong> Head to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold">Google Cloud Console</a> and create a free project.</p>
+                                  <p><strong>2.</strong> Go to <strong>APIs & Services</strong> &rarr; <strong>OAuth consent screen</strong>, select <em>External</em>, enter your email.</p>
+                                  <p><strong>3.</strong> Click <strong>Credentials</strong> &rarr; <strong>Create Credentials</strong> &rarr; <strong>OAuth client ID</strong>. Select <strong>Web Application</strong>.</p>
+                                  <p><strong>4.</strong> Under <strong>Authorized JavaScript origins</strong> paste our App URL shown above.</p>
+                                  <p><strong>5.</strong> Under <strong>Authorized redirect URIs</strong> paste the exact same App URL.</p>
+                                  <p><strong>6.</strong> Click Create, copy your generated Client ID, paste it into the field above and connect!</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                           
                           <button
                             type="button"
                             onClick={handleGDriveConnect}
-                            className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-950 text-white font-bold py-2 px-3 rounded-lg cursor-pointer transition-colors text-[10px] uppercase font-mono tracking-wider shadow-sm"
+                            className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-950 text-white font-bold py-2.5 px-3 rounded-lg cursor-pointer transition-colors text-[10px] uppercase font-mono tracking-wider shadow-sm"
                           >
                             <Link2 className="h-3.5 w-3.5 stroke-[2.5px]" />
                             <span>{lang === 'ru' ? 'Подключить и войти' : 'Authorize & Connect'}</span>
