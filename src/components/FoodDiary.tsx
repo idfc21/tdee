@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserBioProfile, FoodItemLog } from '../types';
 import { calculateTheoreticalTDEE, calculateMacroTargets, GOAL_ADJUSTMENTS } from '../utils/calc';
 import {
@@ -15,6 +15,7 @@ import {
   Info,
   Calendar,
   Flame,
+  ChevronLeft,
   ChevronRight,
   PlusCircle,
   TrendingUp,
@@ -24,10 +25,12 @@ import {
   Loader2,
   Check,
   X,
-  Settings
+  Settings,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { searchLocalFoods, searchOpenFoodFacts, FoodDbItem, LOCAL_FOOD_DATABASE } from '../utils/foodDatabase';
+import { translations } from '../utils/translations';
 
 interface FoodDiaryProps {
   profile: UserBioProfile;
@@ -36,6 +39,8 @@ interface FoodDiaryProps {
   onDeleteFoodLog: (id: string) => void;
   onClearFoodLogsForDate: (dateStr: string) => void;
   adaptiveTdee?: number;
+  initialMealSearchTrigger?: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null;
+  onResetMealSearchTrigger?: () => void;
 }
 
 // Highly request Food presets for quick tracking
@@ -57,7 +62,11 @@ export default function FoodDiary({
   onDeleteFoodLog,
   onClearFoodLogsForDate,
   adaptiveTdee,
+  initialMealSearchTrigger,
+  onResetMealSearchTrigger,
 }: FoodDiaryProps) {
+  const lang = profile.language || 'en';
+  const t = translations[lang];
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
   // Custom manual entry states
@@ -73,6 +82,39 @@ export default function FoodDiary({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchRegion, setSearchRegion] = useState<'all' | 'us' | 'ru' | 'ua'>('all');
   const [dbResults, setDbResults] = useState<FoodDbItem[]>([]);
+
+  // Custom user product registry state
+  const [myProducts, setMyProducts] = useState<FoodDbItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('my_custom_products');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // State to toggle inline product creator
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdBrand, setNewProdBrand] = useState('');
+  const [newProdCalories, setNewProdCalories] = useState('');
+  const [newProdProtein, setNewProdProtein] = useState('');
+  const [newProdCarbs, setNewProdCarbs] = useState('');
+  const [newProdFat, setNewProdFat] = useState('');
+
+  // Capture injected search trigger and open modal instantly
+  useEffect(() => {
+    if (initialMealSearchTrigger) {
+      setSelectedDate(new Date().toISOString().split('T')[0]);
+      setCurrentSearchMealType(initialMealSearchTrigger);
+      setDbMealType(initialMealSearchTrigger);
+      setMealType(initialMealSearchTrigger);
+      setIsSearchOpen(true);
+      if (onResetMealSearchTrigger) {
+        onResetMealSearchTrigger();
+      }
+    }
+  }, [initialMealSearchTrigger]);
   const [isSearchingOnline, setIsSearchingOnline] = useState(false);
   const [dbSearchAttempted, setDbSearchAttempted] = useState(false);
   
@@ -115,7 +157,7 @@ export default function FoodDiary({
        const str = d.toISOString().split('T')[0];
        
        // Determine label
-       let dayOfWeek = d.toLocaleDateString('ru-RU', { weekday: 'short' });
+       let dayOfWeek = d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { weekday: 'short' });
        dayOfWeek = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
        
        result.push({
@@ -126,7 +168,7 @@ export default function FoodDiary({
        });
     }
     return result;
-  }, [selectedDate, foodLogs]);
+  }, [selectedDate, foodLogs, lang]);
 
   const handlePresetClick = (preset: typeof PRESET_FOODS[number], idx: number) => {
     const tempDbItem: FoodDbItem = {
@@ -176,15 +218,20 @@ export default function FoodDiary({
     e.preventDefault();
     if (!foodName || !calories) return;
 
+    const parsedCal = parseInt(calories) || 0;
+    const parsedProtein = parseInt(protein) || 0;
+    const parsedCarbs = parseInt(carbs) || 0;
+    const parsedFat = parseInt(fat) || 0;
+
     const activeTime = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 
     onAddFoodLog({
       date: selectedDate,
       name: foodName,
-      calories: parseInt(calories) || 0,
-      protein: parseInt(protein) || 0,
-      carbs: parseInt(carbs) || 0,
-      fat: parseInt(fat) || 0,
+      calories: parsedCal,
+      protein: parsedProtein,
+      carbs: parsedCarbs,
+      fat: parsedFat,
       mealType: currentSearchMealType,
       time: activeTime,
     });
@@ -216,9 +263,19 @@ export default function FoodDiary({
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
+
+    // Map matched custom products first!
+    const matchedMyProducts = myProducts.filter(item => {
+      const sQuery = query.toLowerCase();
+      const nameMatch = item.name.toLowerCase().includes(sQuery) || (item.brand && item.brand.toLowerCase().includes(sQuery));
+      const regionMatch = searchRegion === 'all' || item.region === searchRegion;
+      return nameMatch && regionMatch;
+    });
+
     if (!query) {
       const initial = searchLocalFoods('', searchRegion);
-      setDbResults(initial);
+      const matchedMyProdsAll = myProducts.filter(item => searchRegion === 'all' || item.region === searchRegion);
+      setDbResults([...matchedMyProdsAll, ...initial]);
       setDbSearchAttempted(false);
       return;
     }
@@ -227,13 +284,14 @@ export default function FoodDiary({
     setSelectedDbItem(null);
 
     const local = searchLocalFoods(query, searchRegion);
-    setDbResults(local);
+    const localMerged = [...matchedMyProducts, ...local];
+    setDbResults(localMerged);
 
     setIsSearchingOnline(true);
     try {
       const online = await searchOpenFoodFacts(query, searchRegion);
-      const merged = [...local];
-      const localNames = new Set(local.map(item => item.name.toLowerCase()));
+      const merged = [...localMerged];
+      const localNames = new Set(localMerged.map(item => item.name.toLowerCase()));
 
       online.forEach(item => {
         if (!localNames.has(item.name.toLowerCase())) {
@@ -255,9 +313,64 @@ export default function FoodDiary({
       handleSearch(e as any);
     } else {
       const initial = LOCAL_FOOD_DATABASE.filter(f => searchRegion === 'all' || f.region === searchRegion);
-      setDbResults(initial);
+      const myProductList = myProducts.filter(f => searchRegion === 'all' || f.region === searchRegion);
+      setDbResults([...myProductList, ...initial]);
     }
-  }, [searchRegion]);
+  }, [searchRegion, myProducts]);
+
+  // Handle saving user created custom product
+  const handleCreateCustomProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProdName.trim() || !newProdCalories.trim()) return;
+
+    const newProduct: FoodDbItem = {
+      id: `custom-prod-${Date.now()}`,
+      name: newProdName.trim(),
+      brand: newProdBrand.trim() || undefined,
+      caloriesPer100g: parseInt(newProdCalories) || 0,
+      proteinPer100g: parseFloat(newProdProtein) || 0,
+      carbsPer100g: parseFloat(newProdCarbs) || 0,
+      fatPer100g: parseFloat(newProdFat) || 0,
+      region: 'ua', // default region tag as Ukraine/Local
+      lang: lang === 'ru' ? 'uk' : 'en',
+      tags: [newProdName.trim().toLowerCase(), (newProdBrand || '').trim().toLowerCase()].filter(Boolean)
+    };
+
+    const updated = [newProduct, ...myProducts];
+    setMyProducts(updated);
+    localStorage.setItem('my_custom_products', JSON.stringify(updated));
+
+    // Reset inputs
+    setNewProdName('');
+    setNewProdBrand('');
+    setNewProdCalories('');
+    setNewProdProtein('');
+    setNewProdCarbs('');
+    setNewProdFat('');
+    setIsCreatingProduct(false);
+
+    // Auto focus search results on this brand new product
+    setSearchQuery(newProduct.name);
+    setDbResults(prev => [newProduct, ...prev]);
+  };
+
+  // Delete custom product handler
+  const handleDeleteCustomProduct = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // block click from selecting the row
+    const confirmed = window.confirm(
+      lang === 'ru' 
+        ? 'Удалить этот продукт из вашей базы "Мои продукты"?' 
+        : 'Remove this product from your custom "My Products" database?'
+    );
+    if (!confirmed) return;
+
+    const updated = myProducts.filter(p => p.id !== id);
+    setMyProducts(updated);
+    localStorage.setItem('my_custom_products', JSON.stringify(updated));
+
+    // Update results lists
+    setDbResults(prev => prev.filter(p => p.id !== id));
+  };
 
   // Handle db logging
   const handleLogDbItem = (e: React.FormEvent) => {
@@ -313,85 +426,54 @@ export default function FoodDiary({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Custom Timeline Carousel & Day Switcher Panel */}
-      <div className="bg-white border-2 border-slate-900 rounded-3xl p-4 sm:p-5 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5">
-        
-        {/* Upper Row: Fast Relative Jump Actions & Raw Picker */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-2 border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-900 text-white rounded-2xl border-2 border-slate-900 sm:p-2.5">
-              <Calendar className="h-5 w-5 text-orange-450" />
-            </div>
-            <div>
-              <span className="text-[9px] font-black tracking-widest text-slate-400 block font-mono uppercase">CHRONOLOGICAL DATING</span>
-              <span className="text-base font-black text-slate-900 uppercase tracking-tight block">Diet & Calories Ledger</span>
-            </div>
-          </div>
-
-          {/* Quick Relative jump buttons */}
-          <div className="flex flex-wrap items-center gap-1 font-mono">
-            <button
-              onClick={() => setSelectedDate(dayBeforeYesterdayStr)}
-              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
-                selectedDate === dayBeforeYesterdayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-              }`}
-            >
-              Позавчера
-            </button>
-            <button
-              onClick={() => setSelectedDate(yesterdayStr)}
-              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
-                selectedDate === yesterdayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-              }`}
-            >
-              Вчера
-            </button>
-            <button
-              onClick={() => setSelectedDate(todayStr)}
-              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
-                selectedDate === todayStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-              }`}
-            >
-              Сегодня
-            </button>
-            <button
-              onClick={() => setSelectedDate(tomorrowStr)}
-              className={`px-2 py-1 select-none sm:px-3 sm:py-1.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase border-2 transition-all cursor-pointer ${
-                selectedDate === tomorrowStr
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)]'
-                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
-              }`}
-            >
-              Завтра
-            </button>
-
-            {/* Native calendar date picker wrapper */}
-            <div className="relative inline-block ml-0.5">
+    <div className="w-full flex flex-col gap-2.5 select-none">
+      {/* Low-profile single-box Calendar Timeline */}
+      <div className="bg-white border border-slate-200 rounded-xl p-2.5 flex flex-col gap-2">
+        {/* Sleek Header Row with Selected Date & Native Date Selector Accent */}
+        <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+          <button
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="p-1 hover:bg-slate-50 rounded-lg text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-900 uppercase tracking-tight">
+              {selectedDate === todayStr ? (lang === 'ru' ? 'Сегодня' : 'Today') : new Date(selectedDate).toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            </span>
+            <div className="relative inline-block ml-1">
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => {
                   if (e.target.value) setSelectedDate(e.target.value);
                 }}
-                className="absolute inset-0 opacity-0 w-8 h-8 cursor-pointer"
-                title="Select alternate date"
+                className="absolute inset-0 opacity-0 w-5 h-5 cursor-pointer"
+                title="Choose Custom Date"
               />
-              <button className="flex h-8 w-8 items-center justify-center bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 rounded-xl transition-all shadow-[1px_1px_0px_0px_rgba(15,23,42,1)]">
-                <Settings className="h-4 w-4 text-slate-800" />
-              </button>
+              <Calendar className="h-3.5 w-3.5 text-slate-400 hover:text-slate-700 cursor-pointer" />
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="p-1 hover:bg-slate-50 rounded-lg text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Lower Row: Rolling 7-Day Timeline Carousel */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2 font-mono">
+        {/* Low Margin Rolling 7-Day Matrix */}
+        <div className="grid grid-cols-7 gap-1 font-mono text-center">
           {rollingDays.map((day) => {
             const isSelected = day.dateStr === selectedDate;
             const isToday = day.dateStr === todayStr;
@@ -399,24 +481,23 @@ export default function FoodDiary({
               <button
                 key={day.dateStr}
                 onClick={() => setSelectedDate(day.dateStr)}
-                className={`flex flex-col items-center justify-center p-1 py-1.5 xs:p-2.5 sm:p-2.5 rounded-xl border-2 transition-all hover:scale-102 cursor-pointer ${
+                className={`flex flex-col items-center justify-center py-1 rounded-lg border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-slate-900 bg-slate-900 text-white shadow-[1.5px_1.5px_0px_0px_rgba(249,115,22,1)] sm:shadow-[3px_3px_0px_0px_rgba(249,115,22,1)]'
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 font-bold'
                     : isToday
-                    ? 'border-orange-500 bg-orange-50/40 text-slate-900'
-                    : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
+                    ? 'border-slate-300 bg-slate-50 text-slate-900 font-extrabold'
+                    : 'border-slate-100 bg-white hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <span className={`text-[8px] font-bold tracking-tighter uppercase ${isSelected ? 'text-orange-350' : 'text-slate-400'}`}>
-                  {day.dayLabel}
+                <span className={`text-[8px] font-bold uppercase ${isSelected ? 'text-blue-500' : 'text-slate-400'}`}>
+                  {day.dayLabel.slice(0, 1)}
                 </span>
-                <span className="text-sm font-black mt-0.5 leading-none">
+                <span className="text-xs font-bold leading-none mt-0.5">
                   {day.dayNum}
                 </span>
                 
-                {/* Indicator dot showing logged items exist */}
                 {day.hasFoods && (
-                  <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${isSelected ? 'bg-orange-450' : 'bg-orange-550 animate-pulse'}`}></span>
+                  <span className={`w-1/2 h-0.5 rounded-full mt-0.5 ${isSelected ? 'bg-blue-500' : 'bg-slate-400'}`}></span>
                 )}
               </button>
             );
@@ -424,163 +505,63 @@ export default function FoodDiary({
         </div>
       </div>
 
-      {/* Main Calories & Nutrients progress trackers */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        {/* Main Calorie Ring Progress Card */}
-        <div className="lg:col-span-2 bg-slate-900 border-2 border-slate-900 text-white rounded-3xl p-4 sm:p-6 shadow-[3px_3px_0px_0px_rgba(249,115,22,1)] sm:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] relative overflow-hidden flex flex-col justify-between min-h-[220px]">
-          <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-orange-500/10 blur-2xl"></div>
-          
-          <div className="flex justify-between items-center relative z-10 font-mono">
-            <span className="text-[9px] sm:text-[10px] font-black tracking-widest text-slate-400">ENERGY CONJECTURE BOUNDS</span>
-            <span className="text-[8px] sm:text-[9px] font-black bg-orange-650 text-white px-2.5 py-1 rounded-full border border-orange-500/30 uppercase">
-              Calorie Budget
-            </span>
-          </div>
-
-          <div className="my-3 flex items-center justify-between relative z-10 pr-1 gap-2">
-            <div>
-              <p className="text-4xl sm:text-5xl font-mono font-black tracking-tight text-white leading-none">
-                {totals.calories.toLocaleString()}
-              </p>
-              <p className="text-[9px] sm:text-[10px] text-slate-400 font-black uppercase tracking-wider mt-1.5">
-                KCAL logged out of {targetCalories.toLocaleString()} Target
-              </p>
+      {/* Unified Calories + Macros Panel Card (Extremely low profile, MacroFactor-inspired) */}
+      <div className="bg-white border border-slate-200 text-slate-850 rounded-xl p-2.5 flex flex-col gap-2 font-mono">
+        <div className="grid grid-cols-4 gap-2 text-center select-none text-[10px] sm:text-xs">
+          {/* Calories */}
+          <div className="flex flex-col gap-0.5 text-left">
+            <div className="flex items-center gap-0.5 text-slate-700 font-sans truncate">
+              <span>🔥</span>
+              <span className="font-extrabold text-slate-900">{Math.round(totals.calories)}</span>
+              <span className="text-slate-400 font-normal">/{Math.round(targetCalories)}</span>
             </div>
-            
-            <div className="text-right shrink-0">
-              {calRemaining >= 0 ? (
-                <>
-                  <p className="text-2xl sm:text-3xl font-mono font-black text-emerald-400">
-                    +{calRemaining.toLocaleString()}
-                  </p>
-                  <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-bold tracking-widest">Left to consume</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-2xl sm:text-3xl font-mono font-black text-rose-400">
-                    {calRemaining.toLocaleString()}
-                  </p>
-                  <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase font-bold tracking-widest">Calorie Surplus</p>
-                </>
-              )}
+            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, (totals.calories / targetCalories) * 100)}%` }} />
             </div>
           </div>
 
-          <div className="relative z-10 w-full">
-            <div className="flex justify-between items-center text-[10px] font-mono font-bold text-slate-400 mb-1">
-              <span>PROGRESS SCORE</span>
-              <span>{Math.round(calPercent)}%</span>
-            </div>
-            <div className="h-4 w-full bg-slate-800 rounded-lg border border-slate-700/60 overflow-hidden">
-              <motion.div
-                className={`h-full rounded-md ${calPercent >= 100 ? 'bg-orange-550' : 'bg-orange-400'}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${calPercent}%` }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Macros Progress Panels */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Protein */}
-          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start">
-                <span className="text-[9px] font-black tracking-wider text-rose-500 uppercase font-mono">PROTEIN SHIFT</span>
-                <span className="text-[10px] font-mono text-slate-400 font-black">{Math.round(proteinPercent)}%</span>
-              </div>
-              <h4 className="text-lg font-black text-slate-900 font-mono tracking-tight mt-1">
-                {totals.protein}g <span className="text-[10px] text-slate-450">/ {macroTargets.proteinGrams}g</span>
-              </h4>
-              <p className="text-[9px] text-slate-400 uppercase font-black tracking-wide mt-1">Structure Recover</p>
+          <div className="flex flex-col gap-0.5 text-left">
+            <div className="flex items-center gap-0.5 text-slate-705 font-sans truncate">
+              <span className="font-bold text-rose-500">P</span>
+              <span className="font-extrabold text-slate-900">{Math.round(totals.protein)}</span>
+              <span className="text-slate-400 font-normal">/{Math.round(macroTargets.proteinGrams)}</span>
             </div>
-            <div className="mt-4">
-              <div className="h-2.5 w-full bg-slate-100 rounded-full border border-slate-350 overflow-hidden">
-                <motion.div
-                  className="h-full bg-rose-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${proteinPercent}%` }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              </div>
+            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (totals.protein / macroTargets.proteinGrams) * 100)}%` }} />
+            </div>
+          </div>
+
+          {/* Fats */}
+          <div className="flex flex-col gap-0.5 text-left">
+            <div className="flex items-center gap-0.5 text-slate-705 font-sans truncate">
+              <span className="font-bold text-amber-500">F</span>
+              <span className="font-extrabold text-slate-900">{Math.round(totals.fat)}</span>
+              <span className="text-slate-400 font-normal">/{Math.round(macroTargets.fatGrams)}</span>
+            </div>
+            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${Math.min(100, (totals.fat / macroTargets.fatGrams) * 100)}%` }} />
             </div>
           </div>
 
           {/* Carbs */}
-          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start">
-                <span className="text-[9px] font-black tracking-wider text-amber-500 uppercase font-mono">CARBOHYDRATES</span>
-                <span className="text-[10px] font-mono text-slate-400 font-black">{Math.round(carbsPercent)}%</span>
-              </div>
-              <h4 className="text-lg font-black text-slate-900 font-mono tracking-tight mt-1">
-                {totals.carbs}g <span className="text-[10px] text-slate-450">/ {macroTargets.carbGrams}g</span>
-              </h4>
-              <p className="text-[9px] text-slate-400 uppercase font-black tracking-wide mt-1">Glycogen Reserve</p>
+          <div className="flex flex-col gap-0.5 text-left">
+            <div className="flex items-center gap-0.5 text-slate-705 font-sans truncate">
+              <span className="font-bold text-emerald-500">C</span>
+              <span className="font-extrabold text-slate-900">{Math.round(totals.carbs)}</span>
+              <span className="text-slate-400 font-normal">/{Math.round(macroTargets.carbGrams)}</span>
             </div>
-            <div className="mt-4">
-              <div className="h-2.5 w-full bg-slate-100 rounded-full border border-slate-350 overflow-hidden">
-                <motion.div
-                  className="h-full bg-amber-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${carbsPercent}%` }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Fat */}
-          <div className="bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-[2.5px_2.5px_0px_0px_rgba(15,23,42,1)] sm:shadow-[5px_5px_0px_0px_rgba(15,23,42,1)] flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start">
-                <span className="text-[9px] font-black tracking-wider text-sky-500 uppercase font-mono">LIPIDS / FATS</span>
-                <span className="text-[10px] font-mono text-slate-400 font-black">{Math.round(fatPercent)}%</span>
-              </div>
-              <h4 className="text-lg font-black text-slate-900 font-mono tracking-tight mt-1">
-                {totals.fat}g <span className="text-[10px] text-slate-450">/ {macroTargets.fatGrams}g</span>
-              </h4>
-              <p className="text-[9px] text-slate-400 uppercase font-black tracking-wide mt-1">Hormonal Base</p>
-            </div>
-            <div className="mt-4">
-              <div className="h-2.5 w-full bg-slate-100 rounded-full border border-slate-350 overflow-hidden">
-                <motion.div
-                  className="h-full bg-sky-500 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${fatPercent}%` }}
-                  transition={{ duration: 0.5, ease: 'easeOut' }}
-                />
-              </div>
+            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (totals.carbs / macroTargets.carbGrams) * 100)}%` }} />
             </div>
           </div>
         </div>
       </div>
 
       {/* Mealtimes Vertical List (MacroFactor-style direct layout) */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-5 gap-3 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
-          <div>
-            <span className="text-[9px] tracking-widest uppercase font-black font-mono text-orange-655 block">ДНЕВНИК ПИТАНИЯ • DIET TIMELINE</span>
-            <span className="text-sm font-black text-slate-900 uppercase tracking-tight block">Метаболический лог еды / Mealtimes Summary</span>
-          </div>
-
-          <button
-            onClick={() => {
-              if (confirm('Очистить все записи за эту дату? / Clear all logged food items for this date?')) {
-                onClearFoodLogsForDate(selectedDate);
-              }
-            }}
-            disabled={todaysFoods.length === 0}
-            className="flex items-center justify-center gap-1.5 bg-slate-50 border-2 border-slate-900 hover:bg-rose-50 hover:text-rose-600 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase font-mono transition-all cursor-pointer shadow-[1.5px_1.5px_0px_0px_rgba(15,23,42,1)] disabled:opacity-50 disabled:cursor-not-allowed text-slate-705 w-full sm:w-auto font-bold"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Сбросить день / Clear Day
-          </button>
-        </div>
-
+      <div className="flex flex-col gap-1.5">
         {/* The 4 main compartments (Breakfast, Lunch, Dinner, Snack) */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
           {(Object.keys(mealGroups) as Array<keyof typeof mealGroups>).map((groupKey) => {
             const group = mealGroups[groupKey];
             const groupTotals = group.items.reduce(
@@ -595,10 +576,10 @@ export default function FoodDiary({
             );
 
             const mealTitles: Record<string, string> = {
-              breakfast: 'Завтрак / Breakfast',
-              lunch: 'Обед / Lunch',
-              dinner: 'Ужин / Dinner',
-              snack: 'Перекус / Snack'
+              breakfast: lang === 'ru' ? 'Завтрак' : 'Breakfast',
+              lunch: lang === 'ru' ? 'Обед' : 'Lunch',
+              dinner: lang === 'ru' ? 'Ужин' : 'Dinner',
+              snack: lang === 'ru' ? 'Перекус' : 'Snack'
             };
 
             const hasItems = group.items.length > 0;
@@ -615,18 +596,18 @@ export default function FoodDiary({
                     setSelectedDbItem(null);
                     setSearchQuery('');
                   }}
-                  className="w-full border-2 border-dashed border-slate-300 hover:border-slate-900 bg-slate-50/50 hover:bg-slate-100 p-3 sm:p-3.5 rounded-2xl transition-all flex items-center justify-between text-slate-500 hover:text-slate-950 font-mono text-xs cursor-pointer group select-none shadow-[2px_2px_0px_0px_rgba(0,0,0,0.02)] hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] hover:-translate-y-0.5"
+                  className="w-full bg-slate-900 hover:bg-slate-950 text-white py-3.5 sm:py-4 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-sm select-none"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 sm:p-1.5 bg-white border border-slate-200 rounded-lg group-hover:border-slate-900 transition-colors">
-                      {group.icon}
-                    </span>
-                    <span className="font-extrabold uppercase tracking-wider text-[10px] sm:text-[11px] text-slate-700 group-hover:text-slate-950">
-                      + Добавить {groupKey === 'breakfast' ? 'Завтрак' : groupKey === 'lunch' ? 'Обед' : groupKey === 'dinner' ? 'Ужин' : 'Перекус'}
-                    </span>
-                  </div>
-                  <span className="text-[8px] sm:text-[9px] font-bold text-slate-450 group-hover:text-slate-600 transition-colors uppercase">
-                    {groupKey === 'breakfast' ? 'Breakfast' : groupKey === 'lunch' ? 'Lunch' : groupKey === 'dinner' ? 'Dinner' : 'Snack'}
+                  <Plus className="h-4 w-4 stroke-[3.5px] text-white shrink-0" />
+                  <span>
+                    {lang === 'ru' ? 'Добавить ' : 'Add '}
+                    {groupKey === 'breakfast' 
+                      ? (lang === 'ru' ? 'Завтрак' : 'Breakfast') 
+                      : groupKey === 'lunch' 
+                      ? (lang === 'ru' ? 'Обед' : 'Lunch') 
+                      : groupKey === 'dinner' 
+                      ? (lang === 'ru' ? 'Ужин' : 'Dinner') 
+                      : (lang === 'ru' ? 'Перекус' : 'Snack')}
                   </span>
                 </button>
               );
@@ -635,28 +616,25 @@ export default function FoodDiary({
             return (
               <div
                 key={groupKey}
-                className="bg-white border-2 border-slate-900 rounded-2xl overflow-hidden shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] sm:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex flex-col transition-all"
+                className="bg-white border border-slate-200 rounded-xl overflow-hidden flex flex-col transition-all"
               >
                 {/* Meal Compartment Header Panel */}
-                <div className="bg-slate-900 text-white px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center flex-wrap gap-2">
-                  <div className="flex items-center gap-2 font-black text-xs uppercase font-mono">
+                <div className="bg-slate-50 border-b border-slate-100 px-3 py-1 flex justify-between items-center gap-2">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
                     {group.icon}
                     <span className="tracking-tight">{mealTitles[groupKey]}</span>
+                    <span className="font-normal font-mono text-[10px] text-slate-550">({groupTotals.calories} kcal)</span>
                   </div>
 
                   {/* Subtotal macros summaries and interactive Log action button */}
-                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-[8.5px] sm:text-[9.5px] font-bold text-slate-350 uppercase">
-                      <span className="text-rose-400">P: {Math.round(groupTotals.protein * 10) / 10}g</span>
-                      <span>&bull;</span>
-                      <span className="text-amber-400">C: {Math.round(groupTotals.carbs * 10) / 10}g</span>
-                      <span>&bull;</span>
-                      <span className="text-sky-400">F: {Math.round(groupTotals.fat * 10) / 10}g</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 font-mono text-[9.5px] font-bold text-slate-500">
+                      <span className="text-rose-500">P:{Math.round(groupTotals.protein)}</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-amber-500">C:{Math.round(groupTotals.carbs)}</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-sky-500">F:{Math.round(groupTotals.fat)}</span>
                     </div>
-
-                    <span className="font-mono text-[9px] sm:text-[10px] font-black bg-white/20 px-2 py-0.5 rounded text-orange-200">
-                      {groupTotals.calories} kcal
-                    </span>
 
                     <button
                       onClick={() => {
@@ -667,10 +645,9 @@ export default function FoodDiary({
                         setSelectedDbItem(null);
                         setSearchQuery('');
                       }}
-                      className="flex items-center gap-1 bg-orange-550 hover:bg-orange-600 text-white border border-orange-500 px-2 py-0.5 sm:py-1 rounded-xl text-[8.5px] sm:text-[9.5px] font-black uppercase font-mono shadow-[1px_1px_0px_0px_rgba(0,0,0,0.25)] cursor-pointer transition-transform hover:scale-102"
+                      className="flex items-center justify-center bg-slate-900 hover:bg-slate-950 text-white p-1 rounded-full cursor-pointer transition-colors shadow-sm"
                     >
-                      <Plus className="h-3 w-3 stroke-[3px]" />
-                      <span>+ Еда / Add</span>
+                      <Plus className="h-3 w-3 stroke-[3px] text-white" />
                     </button>
                   </div>
                 </div>
@@ -680,38 +657,31 @@ export default function FoodDiary({
                   {group.items.map((food) => (
                     <div
                       key={food.id}
-                      className="p-2.5 sm:p-3 flex justify-between items-center hover:bg-slate-50/70 transition-colors gap-2"
+                      className="px-3 py-1 flex justify-between items-center hover:bg-slate-50/40 transition-colors gap-2"
                     >
-                      <div className="flex items-start gap-2 min-w-0 flex-1 font-mono">
+                      <div className="flex items-center gap-2 min-w-0 flex-1 font-sans">
                         {/* Compact micro timestamp tag */}
-                        <span className="text-[9px] sm:text-[10px] bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5 mt-0.5 font-bold shrink-0 self-start">
+                        <span className="text-[9px] bg-slate-50 text-slate-400 border border-slate-200 px-1 rounded font-mono shrink-0">
                           {food.time || '12:00'}
                         </span>
 
-                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                          <span className="text-xs font-black text-slate-900 leading-tight block truncate">
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-xs font-semibold text-slate-850 truncate leading-tight">
                             {food.name}
-                          </span>
-                          <span className="text-[8.5px] sm:text-[9px] font-bold text-slate-450 uppercase tracking-widest mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                            <span>Б: {food.protein}г</span>
-                            <span>&bull;</span>
-                            <span>У: {food.carbs}г</span>
-                            <span>&bull;</span>
-                            <span>Ж: {food.fat}г</span>
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs font-black font-mono text-orange-655 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded">
+                        <span className="text-xs font-bold font-mono text-slate-650">
                           {food.calories} kcal
                         </span>
                         <button
                           onClick={() => onDeleteFoodLog(food.id)}
-                          className="bg-slate-50 hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 hover:border-rose-100 p-1.5 rounded-lg transition-all cursor-pointer"
-                          title="Удалить / Delete"
+                          className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition-colors cursor-pointer"
+                          title={lang === 'ru' ? 'Удалить' : 'Delete'}
                         >
-                          <Trash2 className="h-3.5 w-3.5 stroke-[2.5px]" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
@@ -731,19 +701,19 @@ export default function FoodDiary({
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="bg-white border-4 border-slate-900 rounded-3xl p-5 sm:p-6 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] max-w-lg w-full relative flex flex-col gap-4 max-h-[92vh] overflow-y-auto"
+              className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 max-w-lg w-full relative flex flex-col gap-3.5 max-h-[92vh] overflow-y-auto"
             >
               {/* Top Row Title and Close Trigger */}
               <div className="flex justify-between items-start border-b-2 border-slate-100 pb-3.5">
                 <div>
                   <span className="text-[9px] font-black tracking-widest uppercase font-mono text-orange-555 block">
-                    Добавить пищу / Food tracking
+                    {lang === 'ru' ? 'Добавить пищу' : 'Food tracking'}
                   </span>
                   <h3 className="text-lg font-black text-slate-900 uppercase font-mono">
-                    В прием: {
-                      currentSearchMealType === 'breakfast' ? 'Завтрак / Breakfast' :
-                      currentSearchMealType === 'lunch' ? 'Обед / Lunch' :
-                      currentSearchMealType === 'dinner' ? 'Ужин / Dinner' : 'Перекус / Snack'
+                    {lang === 'ru' ? 'Линейка: ' : 'Target: '} {
+                      currentSearchMealType === 'breakfast' ? (lang === 'ru' ? 'Завтрак' : 'Breakfast') :
+                      currentSearchMealType === 'lunch' ? (lang === 'ru' ? 'Обед' : 'Lunch') :
+                      currentSearchMealType === 'dinner' ? (lang === 'ru' ? 'Ужин' : 'Dinner') : (lang === 'ru' ? 'Перекус' : 'Snack')
                     }
                   </h3>
                 </div>
@@ -753,7 +723,7 @@ export default function FoodDiary({
                     setIsSearchOpen(false);
                     setSelectedDbItem(null);
                   }}
-                  className="hover:bg-slate-100 p-1.5 rounded-xl border-2 border-slate-900 transition-all cursor-pointer bg-white text-slate-950 flex items-center justify-center"
+                  className="hover:bg-slate-50 p-1 rounded-lg border border-slate-200 transition-colors cursor-pointer bg-white text-slate-700 flex items-center justify-center"
                 >
                   <X className="h-4.5 w-4.5 stroke-[3px]" />
                 </button>
@@ -768,9 +738,9 @@ export default function FoodDiary({
                   <button
                     type="button"
                     onClick={() => setSelectedDbItem(null)}
-                    className="self-start text-[10px] font-black uppercase font-mono border-2 border-slate-900 px-3 py-1 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]"
+                    className="self-start text-[10px] font-bold uppercase font-mono border border-slate-200 px-3 py-1 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
                   >
-                    &larr; Назад к поиску / Back
+                    &larr; {lang === 'ru' ? 'Назад' : 'Back'}
                   </button>
 
                   <div className="flex flex-col gap-1 mt-1">
@@ -785,16 +755,16 @@ export default function FoodDiary({
                   {/* Sizer preset buttons */}
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
-                      Порции / Portion presets
+                      {lang === 'ru' ? 'Порции' : 'Portion presets'}
                     </label>
                     <div className="grid grid-cols-2 gap-2 font-mono">
                       {[
-                        { label: 'База 100г', grams: '100', desc: 'Reference Weight' },
-                        { label: 'Порция 150г', grams: '150', desc: 'Single Serving' },
-                        { label: 'Пачка 200г', grams: '200', desc: 'Full Pack / Tub' },
-                        { label: 'Двойная 250г', grams: '250', desc: 'Big / Double' },
-                        { label: 'Большая 300г', grams: '300', desc: 'Large Bowl' },
-                        { label: 'Макси 400г', grams: '400', desc: 'Max Meal' },
+                        { label: lang === 'ru' ? 'База 100г' : 'Reference 100g', grams: '100', desc: 'Reference Weight' },
+                        { label: lang === 'ru' ? 'Порция 150г' : 'Serving 150g', grams: '150', desc: 'Single Serving' },
+                        { label: lang === 'ru' ? 'Пачка 200г' : 'Pack 200g', grams: '200', desc: 'Full Pack / Tub' },
+                        { label: lang === 'ru' ? 'Двойная 250г' : 'Double 250g', grams: '250', desc: 'Big / Double' },
+                        { label: lang === 'ru' ? 'Большая 300г' : 'Large 300g', grams: '300', desc: 'Large Bowl' },
+                        { label: lang === 'ru' ? 'Макси 400г' : 'Max 400g', grams: '400', desc: 'Max Meal' },
                       ].map((presetItem) => {
                         const active = portionGrams === presetItem.grams;
                         return (
@@ -802,10 +772,10 @@ export default function FoodDiary({
                             key={presetItem.grams}
                             type="button"
                             onClick={() => setPortionGrams(presetItem.grams)}
-                            className={`p-2 rounded-xl border-2 text-left transition-all flex flex-col cursor-pointer ${
+                            className={`p-2 rounded-xl border text-left transition-colors flex flex-col cursor-pointer ${
                               active
-                                ? 'border-slate-900 bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
-                                : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-800'
+                                ? 'border-blue-500 bg-blue-50 text-blue-600 font-bold'
+                                : 'border-slate-150 bg-slate-50 hover:bg-white text-slate-800'
                             }`}
                           >
                             <span className="text-[11px] font-black">{presetItem.label}</span>
@@ -822,9 +792,9 @@ export default function FoodDiary({
                   <div className="flex flex-col gap-2">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
-                        Вес (граммы) / custom weight
+                        {lang === 'ru' ? 'Вес (граммы)' : 'Weight (grams)'}
                       </span>
-                      <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-xl border-2 border-slate-900 font-mono text-xs font-black">
+                      <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-200 font-mono text-xs font-bold">
                         <input
                           type="number"
                           min="1"
@@ -833,7 +803,7 @@ export default function FoodDiary({
                           onChange={(e) => setPortionGrams(e.target.value)}
                           className="w-12 bg-transparent text-right outline-none"
                         />
-                        <span className="text-slate-500">г</span>
+                        <span className="text-slate-500">{lang === 'ru' ? 'г' : 'g'}</span>
                       </div>
                     </div>
                     
@@ -844,14 +814,14 @@ export default function FoodDiary({
                       step="5"
                       value={parseFloat(portionGrams) || 100}
                       onChange={(e) => setPortionGrams(e.target.value)}
-                      className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer border-2 border-slate-900 accent-orange-550"
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-550"
                     />
                   </div>
 
                   {/* Destination meal picker */}
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest">
-                      Прием пищи / Mealtimes split
+                      {lang === 'ru' ? 'Прием пищи' : 'Mealtimes split'}
                     </label>
                     <div className="grid grid-cols-4 gap-1.5 font-mono">
                       {[
@@ -869,10 +839,10 @@ export default function FoodDiary({
                               setDbMealType(mealPill.id as any);
                               setMealType(mealPill.id as any); // keep custom manual synced as well
                             }}
-                            className={`py-2 px-1 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                            className={`py-1.5 px-1 rounded-xl border flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${
                               isSelected
-                                ? 'border-slate-900 bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
-                                : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700 hover:border-slate-400'
+                                ? 'border-blue-500 bg-blue-50 text-blue-100 font-bold'
+                                : 'border-slate-200 bg-slate-50 hover:bg-white text-slate-700'
                             }`}
                           >
                             {mealPill.icon}
@@ -884,7 +854,7 @@ export default function FoodDiary({
                   </div>
 
                   {/* Calorie outputs dynamic live board */}
-                  <div className="bg-slate-950 text-white border-2 border-slate-950 p-4 rounded-xl flex flex-col gap-2 font-mono mt-1">
+                  <div className="bg-slate-900 text-white p-3.5 rounded-xl flex flex-col gap-1.5 font-mono mt-1">
                     <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Live Scaled Macros</span>
                       <span className="text-[10px] font-black text-orange-450">{portionGrams || '100'}g portion</span>
@@ -927,7 +897,7 @@ export default function FoodDiary({
                   <button
                     type="button"
                     onClick={handleLogDbItem}
-                    className="w-full flex items-center justify-center gap-1.5 bg-orange-550 hover:bg-orange-600 text-white border-2 border-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] font-black py-3 rounded-xl text-xs uppercase font-mono tracking-wider cursor-pointer transition-all hover:translate-y-[-1px] mt-1"
+                    className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-bold uppercase font-mono tracking-wider cursor-pointer transition-colors mt-1"
                   >
                     <Check className="h-4.5 w-4.5 stroke-[3.5px]" />
                     <span>Внести {portionGrams || '100'}г в Дневник / Confirm Log</span>
@@ -938,13 +908,13 @@ export default function FoodDiary({
                 /* Step 1: Input Search list or Manual forms */
                 <div className="flex flex-col gap-4">
                   {/* Select Entry Mode Sub-tabs navigation */}
-                  <div className="flex bg-slate-100 border-2 border-slate-900 p-1 rounded-2xl font-mono">
+                  <div className="flex bg-slate-100 border border-slate-200 p-1 rounded-xl font-mono">
                     <button
                       type="button"
                       onClick={() => setEntryMode('database')}
-                      className={`flex-1 text-center py-2 text-[10px] font-black rounded-xl uppercase tracking-tight transition-all cursor-pointer ${
+                      className={`flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg uppercase tracking-tight transition-colors cursor-pointer ${
                         entryMode === 'database'
-                          ? 'bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.25)]'
+                          ? 'bg-white text-slate-900 border border-slate-200 shadow-none'
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
@@ -953,9 +923,9 @@ export default function FoodDiary({
                     <button
                       type="button"
                       onClick={() => setEntryMode('manual')}
-                      className={`flex-1 text-center py-2 text-[10px] font-black rounded-xl uppercase tracking-tight transition-all cursor-pointer ${
+                      className={`flex-1 text-center py-1.5 text-[10px] font-bold rounded-lg uppercase tracking-tight transition-colors cursor-pointer ${
                         entryMode === 'manual'
-                          ? 'bg-slate-900 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.25)]'
+                          ? 'bg-white text-slate-900 border border-slate-200 shadow-none'
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
@@ -975,15 +945,15 @@ export default function FoodDiary({
                             placeholder="Наберите Борщ, Сырники, Творог, Банан..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white border-2 border-slate-900 rounded-xl pl-9 pr-3 py-2.5 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500 font-mono"
                           />
                         </div>
                         <button
                           type="submit"
-                          className="bg-slate-900 text-white border-2 border-slate-900 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]"
+                          className="bg-blue-600 text-white px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-blue-700 transition-colors cursor-pointer flex items-center gap-1.5"
                         >
                           {isSearchingOnline ? (
-                            <Loader2 className="h-4.5 w-4.5 animate-spin text-orange-450" />
+                            <Loader2 className="h-4.5 w-4.5 animate-spin text-white" />
                           ) : (
                             'Поиск / Find'
                           )}
@@ -1020,7 +990,7 @@ export default function FoodDiary({
                           Результаты поиска ({dbResults.length})
                         </span>
                         
-                        <div className="max-h-[200px] overflow-y-auto border-2 border-slate-150 rounded-2xl divide-y divide-slate-100 bg-slate-50 p-1 flex flex-col gap-1 pr-1 font-mono">
+                        <div className="max-h-[180px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100 bg-slate-50 p-1 flex flex-col gap-1 pr-1 font-mono">
                           {dbResults.length === 0 ? (
                             <div className="py-8 flex flex-col items-center justify-center text-center gap-1.5 bg-white rounded-xl border border-slate-200">
                               <Utensils className="h-6 w-6 text-slate-300 animate-pulse" />
@@ -1039,12 +1009,32 @@ export default function FoodDiary({
                                 className="w-full text-left p-2 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col gap-0.5 cursor-pointer bg-white hover:bg-slate-50 text-xs"
                               >
                                 <div className="flex justify-between items-start w-full gap-2 font-mono">
-                                  <span className="font-extrabold text-slate-900 truncate leading-tight flex-1">{item.name}</span>
-                                  {item.brand && (
-                                    <span className="text-[8px] font-black tracking-wide font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded leading-none">
-                                      {item.brand}
-                                    </span>
-                                  )}
+                                  <div className="flex-1 truncate leading-tight flex items-center gap-1.5 min-w-0">
+                                    {item.id.startsWith('custom-prod-') && (
+                                      <span className="shrink-0 bg-amber-100 border border-amber-200 text-amber-700 text-[8px] font-black uppercase px-1 rounded leading-none flex items-center gap-0.5">
+                                        <Sparkles className="h-2 w-2" />
+                                        {lang === 'ru' ? 'МОЙ' : 'MY'}
+                                      </span>
+                                    )}
+                                    <span className="font-extrabold text-slate-900 truncate">{item.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {item.brand && (
+                                      <span className="text-[8px] font-black tracking-wide font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded leading-none">
+                                        {item.brand}
+                                      </span>
+                                    )}
+                                    {item.id.startsWith('custom-prod-') && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleDeleteCustomProduct(item.id, e)}
+                                        className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition-colors"
+                                        title={lang === 'ru' ? 'Удалить продукт из базы' : 'Delete custom product'}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5 stroke-[2.5px]" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                                 
                                 <div className="flex justify-between items-center w-full mt-1.5 font-mono text-xs">
@@ -1066,28 +1056,124 @@ export default function FoodDiary({
                         </div>
                       </div>
 
-                      {/* Presets List in step 1 embedded cleanly */}
-                      <div className="border-t-2 border-slate-100 pt-3">
-                        <span className="text-[10px] uppercase font-black text-slate-400 font-mono tracking-widest block mb-1.5">
-                          Быстрые шаблоны / Common presets
-                        </span>
-                        <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto pr-1">
-                          {PRESET_FOODS.map((preset, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => {
-                                handlePresetClick(preset, i);
-                              }}
-                              className="p-2 border border-slate-200 rounded-xl bg-slate-50 hover:bg-white text-left text-xs font-bold transition-all text-slate-700 hover:border-slate-350 cursor-pointer flex flex-col gap-0.5"
-                            >
-                              <span className="text-slate-900 font-extrabold text-[11px] block truncate w-full">{preset.name}</span>
-                              <span className="text-[8px] font-mono text-slate-400 leading-none">
-                                {preset.calories}kcal &bull; P: {preset.protein}g, C: {preset.carbs}g
+                      {/* Custom User Product Creator / Replacement for Presets */}
+                      <div className="border-t border-slate-200 pt-3 flex flex-col gap-2">
+                        {!isCreatingProduct ? (
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingProduct(true)}
+                            className="w-full flex items-center justify-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white font-black py-2.5 rounded-xl text-[10px] uppercase font-mono tracking-wider cursor-pointer transition-colors shadow-sm"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            <span>{lang === 'ru' ? 'Создать свой продукт в реестр (Мои продукты)' : 'Create Custom Product (My Products)'}</span>
+                          </button>
+                        ) : (
+                          <form onSubmit={handleCreateCustomProduct} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex flex-col gap-2.5">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider font-mono">
+                                {lang === 'ru' ? 'Создание продукта (на 100г)' : 'New Custom Food (per 100g)'}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => setIsCreatingProduct(false)}
+                                className="text-[9px] font-black text-rose-500 hover:underline font-mono uppercase"
+                              >
+                                {lang === 'ru' ? 'Отмена' : 'Cancel'}
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[8px] font-bold text-slate-400 uppercase font-mono">{lang === 'ru' ? 'Название:*' : 'Name:*'}</label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder={lang === 'ru' ? 'Мороженое Рудь' : 'Rud Ice Cream'}
+                                  value={newProdName}
+                                  onChange={(e) => setNewProdName(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-semibold focus:outline-none focus:border-orange-550 font-mono"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <label className="text-[8px] font-bold text-slate-400 uppercase font-mono">{lang === 'ru' ? 'Производитель (бренд):' : 'Brand (optional):'}</label>
+                                <input
+                                  type="text"
+                                  placeholder={lang === 'ru' ? 'Рудь' : 'Rud'}
+                                  value={newProdBrand}
+                                  onChange={(e) => setNewProdBrand(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-2 text-xs font-semibold focus:outline-none focus:border-orange-550 font-mono"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-2">
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-black text-slate-650 uppercase font-mono text-center">Ккал:*</span>
+                                <input
+                                  type="number"
+                                  required
+                                  min="0"
+                                  max="1500"
+                                  placeholder="220"
+                                  value={newProdCalories}
+                                  onChange={(e) => setNewProdCalories(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1 text-xs text-center font-bold font-mono focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-black text-rose-500 uppercase font-mono text-center">{lang === 'ru' ? 'Белки' : 'Prot'}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  placeholder="4.2"
+                                  step="0.1"
+                                  value={newProdProtein}
+                                  onChange={(e) => setNewProdProtein(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1 text-xs text-center font-semibold font-mono focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-black text-amber-500 uppercase font-mono text-center">{lang === 'ru' ? 'Углев' : 'Carb'}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  placeholder="24.5"
+                                  step="0.1"
+                                  value={newProdCarbs}
+                                  onChange={(e) => setNewProdCarbs(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1 text-xs text-center font-semibold font-mono focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[8px] font-black text-sky-500 uppercase font-mono text-center">{lang === 'ru' ? 'Жиры' : 'Fat'}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  placeholder="11.0"
+                                  step="0.1"
+                                  value={newProdFat}
+                                  onChange={(e) => setNewProdFat(e.target.value)}
+                                  className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1 text-xs text-center font-semibold font-mono focus:outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <button
+                              type="submit"
+                              className="w-full flex items-center justify-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white font-black py-2 rounded-xl text-[10px] uppercase font-mono tracking-wider cursor-pointer transition-colors shadow-sm"
+                            >
+                              <Check className="h-3.5 w-3.5 stroke-[3px]" />
+                              <span>{lang === 'ru' ? 'Добавить в "Мои продукты"' : 'Add to Custom Database'}</span>
                             </button>
-                          ))}
-                        </div>
+                          </form>
+                        )}
                       </div>
 
                     </div>
@@ -1095,96 +1181,142 @@ export default function FoodDiary({
                     /* Manual Form Panel */
                     <form onSubmit={handleCustomSubmit} className="flex flex-col gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Название блюда / Description Name</label>
+                        <label className="text-[10px] uppercase font-black text-slate-500 font-mono">{t.foodNameLabel}</label>
                         <input
                           type="text"
-                          placeholder="Шашлык, макароны, творог 5%..."
+                          placeholder={lang === 'ru' ? 'Шашлык, макароны, творог 5%...' : 'Chicken, pasta, cottage cheese 5%...'}
                           value={foodName}
-                          onChange={(e) => setFoodName(e.target.value)}
-                          className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
+                          onChange={(e) => {
+                            setFoodName(e.target.value);
+                            setShowMacroWarning(false);
+                          }}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500 font-mono"
                           required
                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Прием пищи / Category</label>
+                          <label className="text-[10px] uppercase font-black text-slate-500 font-mono">{t.foodCategoryLabel}</label>
                           <select
                             value={mealType}
                             onChange={(e) => setMealType(e.target.value as any)}
-                            className="w-full bg-white border-2 border-slate-900 rounded-xl px-2.5 py-2 text-xs font-black text-slate-900 focus:outline-none"
+                            className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none"
                           >
-                            <option value="breakfast">Завтрак / Breakfast</option>
-                            <option value="lunch">Обед / Lunch</option>
-                            <option value="dinner">Ужин / Dinner</option>
-                            <option value="snack">Перекус / Snack</option>
+                            <option value="breakfast">{lang === 'ru' ? 'Завтрак' : 'Breakfast'}</option>
+                            <option value="lunch">{lang === 'ru' ? 'Обед' : 'Lunch'}</option>
+                            <option value="dinner">{lang === 'ru' ? 'Ужин' : 'Dinner'}</option>
+                            <option value="snack">{lang === 'ru' ? 'Перекус' : 'Snack'}</option>
                           </select>
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                          <label className="text-[10px] uppercase font-black text-slate-500 font-mono">Калории (ккал) / Calories</label>
+                          <label className="text-[10px] uppercase font-black text-slate-500 font-mono">{t.foodCaloriesLabel}</label>
                           <input
                             type="number"
                             min="0"
                             max="5000"
                             placeholder="320"
                             value={calories}
-                            onChange={(e) => setCalories(e.target.value)}
-                            className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-xs font-black text-slate-900 font-mono focus:outline-none"
+                            onChange={(e) => {
+                              setCalories(e.target.value);
+                              setShowMacroWarning(false);
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 font-mono focus:outline-none"
                             required
                           />
                         </div>
                       </div>
 
                       {/* Manual Macro grams split */}
-                      <div className="bg-slate-50 border-2 border-slate-200 p-3.5 rounded-2xl">
+                      <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
                         <p className="text-[9px] font-black text-slate-400 uppercase font-mono tracking-widest mb-2.5 text-center">
-                          Макронутриенты (БЖУ - Опционально!) / Macro Grams
+                          {t.macrosHeaderOptional}
                         </p>
                         <div className="grid grid-cols-3 gap-2.5 font-mono">
                           <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-black text-rose-500 uppercase font-mono text-center">Белки / Prot</span>
+                            <span className="text-[8px] font-black text-rose-500 uppercase font-mono text-center">{lang === 'ru' ? 'Белки' : 'Prot'}</span>
                             <input
                               type="number"
                               min="0"
                               placeholder="25"
                               value={protein}
-                              onChange={(e) => setProtein(e.target.value)}
-                              className="w-full bg-white border-2 border-slate-350 rounded-lg py-1 px-1.5 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                              onChange={(e) => {
+                                setProtein(e.target.value);
+                                setShowMacroWarning(false);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-[11px] font-semibold text-center text-slate-900 focus:outline-none"
                             />
                           </div>
 
                           <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-black text-amber-500 uppercase font-mono text-center">Углеводы / Carbs</span>
+                            <span className="text-[8px] font-black text-amber-500 uppercase font-mono text-center">{lang === 'ru' ? 'Углеводы' : 'Carbs'}</span>
                             <input
                               type="number"
                               min="0"
                               placeholder="30"
                               value={carbs}
-                              onChange={(e) => setCarbs(e.target.value)}
-                              className="w-full bg-white border-2 border-slate-350 rounded-lg py-1 px-1.5 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                              onChange={(e) => {
+                                setCarbs(e.target.value);
+                                setShowMacroWarning(false);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-[11px] font-semibold text-center text-slate-900 focus:outline-none"
                             />
                           </div>
 
                           <div className="flex flex-col gap-1">
-                            <span className="text-[8px] font-black text-sky-500 uppercase font-mono text-center">Жиры / Fats</span>
+                            <span className="text-[8px] font-black text-sky-500 uppercase font-mono text-center">{lang === 'ru' ? 'Жиры' : 'Fats'}</span>
                             <input
                               type="number"
                               min="0"
                               placeholder="8"
                               value={fat}
                               onChange={(e) => setFat(e.target.value)}
-                              className="w-full bg-white border-2 border-slate-350 rounded-lg py-1 px-1.5 text-[11px] font-black text-center text-slate-900 focus:outline-none"
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1 px-1.5 text-[11px] font-semibold text-center text-slate-900 focus:outline-none"
                             />
                           </div>
                         </div>
                       </div>
 
+                      {/* Dynamic inline Macro Calorie alert confirmation warning */}
+                      {(() => {
+                        const parsedCal = parseInt(calories) || 0;
+                        const parsedP = parseInt(protein) || 0;
+                        const parsedC = parseInt(carbs) || 0;
+                        const parsedF = parseInt(fat) || 0;
+                        const minMacroCals = (parsedP * 4) + (parsedC * 4) + (parsedF * 9);
+                        const isOverMacros = minMacroCals > parsedCal && parsedCal > 0;
+
+                        if (!isOverMacros) return null;
+
+                        return (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 flex flex-col gap-1 font-sans">
+                            <div className="flex items-start gap-2">
+                              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-amber-800">
+                                  {lang === 'ru' ? 'Вы уверены?' : 'Are you sure?'}
+                                </span>
+                                <p className="text-slate-600 leading-normal text-[11px]">
+                                  {lang === 'ru'
+                                    ? `Введённые макроны содержат минимум ${minMacroCals} ккал, превышая общую калорийность (${calories} ккал).`
+                                    : `The macros contain at least ${minMacroCals} kcal, which exceeds the total calories (${calories} kcal).`
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <button
                         type="submit"
-                        className="w-full flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] font-semibold py-2.5 rounded-xl text-xs cursor-pointer transition-all"
+                        className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs cursor-pointer transition-colors"
                       >
-                        <Plus className="h-4.5 w-4.5 text-orange-450 stroke-[3px]" /> Log Manual Item
+                        <span className="bg-white rounded-full p-0.5 flex items-center justify-center">
+                          <Plus className="h-3 w-3 stroke-[3px] text-slate-900" />
+                        </span>
+                        <span>{t.manualEntryTab}</span>
                       </button>
                     </form>
                   )}

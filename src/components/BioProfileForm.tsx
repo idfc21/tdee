@@ -34,11 +34,11 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Input panel */}
-      <div className="lg:col-span-7 bg-white rounded-3xl border-2 border-slate-900 p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-6">
+      <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 flex flex-col gap-6">
         <div>
-          <span className="text-[10px] font-black tracking-widest text-orange-600 uppercase font-mono block">INPUT COORDINATES</span>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 mt-0.5 uppercase tracking-tight">
-            <Compass className="h-5.5 w-5.5 text-orange-550" />
+          <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase font-mono block">INPUT COORDINATES</span>
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mt-0.5 uppercase tracking-tight">
+            <Compass className="h-5.5 w-5.5 text-blue-550" />
             Your Body Coordinates
           </h2>
           <p className="text-xs text-slate-400 mt-1 font-medium">Configure your physical metrics for accurate expenditure modeling.</p>
@@ -46,16 +46,16 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
 
         {/* Binary Choice Row: Gender */}
         <div className="flex flex-col gap-2.5">
-          <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">Biological Sex</label>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Biological Sex</label>
           <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
               id="gender-male"
               onClick={() => handleGenderChange('male')}
-              className={`flex items-center justify-center py-3.5 px-4 rounded-xl border-2 text-sm font-black transition-all cursor-pointer ${
+              className={`flex items-center justify-center py-3 px-4 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
                 localProfile.gender === 'male'
-                  ? 'border-slate-900 bg-orange-100 text-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] hover:bg-orange-150'
-                  : 'border-slate-200 hover:border-slate-900 text-slate-500 hover:text-slate-900 hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] bg-white'
+                  ? 'border-blue-550 bg-blue-50 text-blue-800'
+                  : 'border-slate-200 bg-white hover:border-slate-350 text-slate-500 hover:text-slate-900'
               }`}
             >
               🧔 Male
@@ -64,10 +64,10 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
               type="button"
               id="gender-female"
               onClick={() => handleGenderChange('female')}
-              className={`flex items-center justify-center py-3.5 px-4 rounded-xl border-2 text-sm font-black transition-all cursor-pointer ${
+              className={`flex items-center justify-center py-3 px-4 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
                 localProfile.gender === 'female'
-                  ? 'border-slate-900 bg-orange-100 text-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] hover:bg-orange-150'
-                  : 'border-slate-200 hover:border-slate-900 text-slate-500 hover:text-slate-900 hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] bg-white'
+                  ? 'border-blue-550 bg-blue-50 text-blue-800'
+                  : 'border-slate-200 bg-white hover:border-slate-350 text-slate-500 hover:text-slate-900'
               }`}
             >
               👩 Female
@@ -78,9 +78,9 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
         {/* Weight & Height Panel */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Weight Input Group */}
-          <div className="flex flex-col gap-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)]">
+          <div className="flex flex-col gap-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-150">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5 font-mono">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 font-mono">
                 <Scale className="h-4 w-4 text-emerald-600" />
                 Weight
               </label>
@@ -97,9 +97,9 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 max="600"
                 value={localProfile.weight}
                 onChange={(e) => updateField('weight', parseFloat(e.target.value) || 0)}
-                className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                className="w-full bg-white border border-slate-205 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-500"
               />
-              <span className="font-mono font-black text-xs text-slate-500 bg-white border-2 border-slate-900 px-3 py-2 rounded-xl shadow-inner uppercase min-w-[50px] text-center">
+              <span className="font-mono font-bold text-xs text-slate-500 bg-slate-100/80 px-3 py-2 rounded-xl uppercase min-w-[50px] text-center">
                 {localProfile.unitSystem === 'metric' ? 'kg' : 'lbs'}
               </span>
             </div>
@@ -110,14 +110,14 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
               step="0.5"
               value={localProfile.weight}
               onChange={(e) => updateField('weight', parseFloat(e.target.value))}
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 mt-2 border border-slate-300"
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2 border border-slate-300"
             />
           </div>
 
           {/* Height Input Group */}
-          <div className="flex flex-col gap-2 bg-slate-50 p-4 rounded-2xl border-2 border-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)]">
+          <div className="flex flex-col gap-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-150">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1.5 font-mono">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5 font-mono">
                 <Ruler className="h-4 w-4 text-sky-600" />
                 Height
               </label>
@@ -136,9 +136,9 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                     max="250"
                     value={localProfile.height}
                     onChange={(e) => updateField('height', parseFloat(e.target.value) || 0)}
-                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-3 py-2 text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                    className="w-full bg-white border border-slate-205 rounded-xl px-3 py-2 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                   />
-                  <span className="font-mono font-black text-xs text-slate-500 bg-white border-2 border-slate-900 px-3 py-2 rounded-xl shadow-inner min-w-[50px] text-center">
+                  <span className="font-mono font-bold text-xs text-slate-500 bg-slate-100/80 px-3 py-2 rounded-xl min-w-[50px] text-center">
                     cm
                   </span>
                 </div>
@@ -148,7 +148,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                   max="220"
                   value={localProfile.height}
                   onChange={(e) => updateField('height', parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 mt-2 border border-slate-300"
+                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 mt-2 border border-slate-300"
                 />
               </>
             ) : (
@@ -158,7 +158,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                     id="height-ft"
                     value={localProfile.heightFt || 5}
                     onChange={(e) => updateField('heightFt', parseInt(e.target.value))}
-                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-2.5 py-2.5 text-xs font-black text-slate-900 focus:outline-none"
+                    className="w-full bg-white border border-slate-205 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                   >
                     {[3, 4, 5, 6, 7, 8].map((ft) => (
                       <option key={ft} value={ft}>
@@ -172,7 +172,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                     id="height-in"
                     value={localProfile.heightIn || 6}
                     onChange={(e) => updateField('heightIn', parseInt(e.target.value))}
-                    className="w-full bg-white border-2 border-slate-900 rounded-xl px-2.5 py-2.5 text-xs font-black text-slate-900 focus:outline-none"
+                    className="w-full bg-white border border-slate-205 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                   >
                     {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((inch) => (
                       <option key={inch} value={inch}>
@@ -190,7 +190,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Age Group */}
           <div className="flex flex-col gap-2 bg-white p-4 rounded-xl border border-slate-200/80">
-            <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-mono">Age (Years)</label>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-mono">Age (Years)</label>
             <div className="flex items-center gap-3">
               <input
                 type="range"
@@ -198,7 +198,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 max="95"
                 value={localProfile.age}
                 onChange={(e) => updateField('age', parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <input
                 type="number"
@@ -207,7 +207,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 max="120"
                 value={localProfile.age}
                 onChange={(e) => updateField('age', parseInt(e.target.value) || 0)}
-                className="w-18 bg-slate-50 border-2 border-slate-900 rounded-xl px-2.5 py-1 text-center text-sm font-black text-slate-900 focus:outline-none"
+                className="w-18 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-center text-sm font-bold text-slate-900 focus:outline-none"
               />
             </div>
           </div>
@@ -215,12 +215,12 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
           {/* Body Fat % */}
           <div className="flex flex-col gap-2 bg-white p-4 rounded-xl border border-slate-200/80">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1 font-mono">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1 font-mono">
                 Body Fat %
                 <span className="text-[10px] text-slate-400 capitalize font-medium font-sans">(optional)</span>
               </label>
               {localProfile.formula === 'katch' && (
-                <span className="text-[9px] text-orange-700 bg-orange-50 px-2 py-0.5 rounded font-mono border border-orange-200 font-extrabold uppercase">
+                <span className="text-[9px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-mono border border-blue-200 font-bold uppercase">
                   Required
                 </span>
               )}
@@ -233,7 +233,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 value={localProfile.bodyFat || 20}
                 disabled={localProfile.formula !== 'katch' && !localProfile.bodyFat}
                 onChange={(e) => updateField('bodyFat', parseInt(e.target.value))}
-                className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-orange-505 ${
+                className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-blue-600 ${
                   localProfile.formula !== 'katch' && !localProfile.bodyFat ? 'bg-slate-100 cursor-not-allowed opacity-40' : 'bg-slate-200'
                 }`}
               />
@@ -241,7 +241,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 {localProfile.bodyFat === undefined ? (
                   <button
                     onClick={() => updateField('bodyFat', 18)}
-                    className="text-[10px] font-black text-orange-700 hover:text-white bg-orange-50 hover:bg-slate-900 px-3 py-1.5 rounded-xl border-2 border-slate-950 transition-all uppercase tracking-wider font-mono cursor-pointer"
+                    className="text-[10px] font-bold text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors uppercase tracking-wider font-mono cursor-pointer"
                   >
                     Enable
                   </button>
@@ -254,11 +254,11 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                       max="70"
                       value={localProfile.bodyFat}
                       onChange={(e) => updateField('bodyFat', parseInt(e.target.value) || 0)}
-                      className="w-14 bg-slate-150 border-2 border-slate-900 rounded-xl px-1.5 py-1 text-center text-xs font-black text-slate-900 focus:outline-none"
+                      className="w-14 bg-slate-100 border border-slate-200 rounded-xl px-1.5 py-1 text-center text-xs font-semibold text-slate-900 focus:outline-none"
                     />
                     <button
                       onClick={() => updateField('bodyFat', undefined)}
-                      className="text-slate-400 hover:text-rose-500 font-bold p-1 text-sm scale-110"
+                      className="text-slate-400 hover:text-rose-500 font-bold p-1 text-sm scale-110 cursor-pointer"
                       title="Remove percentage"
                     >
                       ×
@@ -272,11 +272,11 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
 
         {/* Energy Multiplier Selectors */}
         <div className="flex flex-col gap-2.5">
-          <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5 font-mono">
-            <Dumbbell className="h-4 w-4 text-orange-600" />
+          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 font-mono">
+            <Dumbbell className="h-4 w-4 text-blue-600" />
             Daily Activity Multiplier
           </label>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {(
               [
                 {
@@ -316,17 +316,17 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                 type="button"
                 id={`activity-${item.id}`}
                 onClick={() => updateField('activityLevel', item.id)}
-                className={`flex items-start justify-between p-4 rounded-2xl border-2 text-left transition-all text-xs cursor-pointer ${
+                className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-colors text-xs cursor-pointer ${
                   localProfile.activityLevel === item.id
-                    ? 'border-slate-900 bg-orange-50 text-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] font-bold'
-                    : 'border-slate-200 bg-white hover:border-slate-900 hover:text-slate-900 hover:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] text-slate-500'
+                    ? 'border-blue-500 bg-blue-55/10 text-slate-905 font-semibold'
+                    : 'border-slate-200 bg-white hover:border-slate-350 text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <div className="flex flex-col gap-1 max-w-[85%]">
-                  <span className="font-extrabold text-slate-900 text-xs uppercase tracking-wide">{item.label}</span>
-                  <span className="text-[11px] text-slate-450 leading-relaxed font-normal">{item.desc}</span>
+                  <span className="font-bold text-slate-900 text-xs uppercase tracking-wide">{item.label}</span>
+                  <span className="text-[11px] text-slate-400 leading-relaxed font-normal">{item.desc}</span>
                 </div>
-                <span className="font-mono font-black text-orange-700 text-[11px] bg-orange-100 px-2.5 py-1 rounded-lg border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
+                <span className="font-mono font-bold text-blue-700 text-[11px] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-105">
                   {item.mult}
                 </span>
               </button>
@@ -335,17 +335,17 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
         </div>
 
         {/* Estimation Formula Dropdown */}
-        <div className="border-t-2 border-slate-900 pt-5 flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="border-t border-slate-100 pt-5 flex flex-col sm:flex-row gap-3 items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-black text-slate-500 flex items-center gap-1.5 uppercase font-mono">
               Formula Math:
-              <span className="font-black text-slate-900 uppercase font-mono bg-slate-100 border border-slate-300 px-2 py-0.5 rounded text-[11px]">
+              <span className="font-bold text-slate-905 uppercase font-mono bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
                 {localProfile.formula}
               </span>
             </span>
             <button
               onClick={() => setShowFormulaHelp(!showFormulaHelp)}
-              className="text-slate-400 hover:text-orange-550 cursor-pointer p-1"
+              className="text-slate-400 hover:text-blue-550 cursor-pointer p-1"
               title="Formula Blueprint Equations"
               type="button"
             >
@@ -363,10 +363,10 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
                   }
                   updateField('formula', f);
                 }}
-                className={`px-3.5 py-1.5 text-[10px] font-black font-mono rounded-xl border-2 transition-all cursor-pointer uppercase ${
+                className={`px-3.5 py-1.5 text-[10px] font-bold font-mono rounded-xl border transition-all cursor-pointer uppercase ${
                   localProfile.formula === f
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-[2px_2px_0px_0px_rgba(249,115,22,1)]'
-                    : 'bg-white hover:bg-slate-50 text-slate-505 border-slate-200 hover:border-slate-900 hover:text-slate-900'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white hover:bg-slate-50 text-slate-500 border-slate-200'
                 }`}
               >
                 {f === 'mifflin' ? 'MSJ Model' : f === 'harris' ? 'Revised HB' : 'Katch Model'}
@@ -379,9 +379,9 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
           <motion.div
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl bg-orange-50 border-2 border-slate-900 p-4.5 text-xs text-slate-700 flex flex-col gap-2.5 leading-relaxed shadow-[3px_3px_0px_0px_rgba(15,23,42,1)]"
+            className="rounded-2xl bg-blue-50/40 border border-blue-100 p-4.5 text-xs text-slate-700 flex flex-col gap-2.5 leading-relaxed"
           >
-            <p className="font-black text-slate-900 uppercase font-mono text-[10px] tracking-wider text-orange-950">Equations Explained:</p>
+            <p className="font-bold text-blue-900 uppercase font-mono text-[10px] tracking-wider">Equations Explained:</p>
             <ul className="list-disc pl-4 space-y-1.5 text-slate-700 font-medium">
               <li>
                 <strong>Mifflin-St Jeor (MSJ):</strong> The industry-standard baseline recommended by global dietetics. Fast, robust, and excels in general metabolic profiling.
@@ -399,18 +399,17 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
 
       {/* Visual Result Gauge Panel */}
       <div className="lg:col-span-5 flex flex-col gap-6">
-        
         {/* Prime Card: TDEE Quotient */}
-        <div className="bg-white text-slate-900 rounded-3xl border-2 border-slate-900 p-6 sm:p-8 flex flex-col justify-between min-h-[260px] shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] relative overflow-hidden transition-all hover:translate-y-[-2px]">
-          <div className="absolute right-0 top-0 -mr-6 -mt-6 h-36 w-36 rounded-full bg-orange-500/5 blur-xl"></div>
+        <div className="bg-white text-slate-900 rounded-3xl border border-slate-200 p-6 sm:p-8 flex flex-col justify-between min-h-[260px] relative overflow-hidden transition-colors">
+          <div className="absolute right-0 top-0 -mr-6 -mt-6 h-36 w-36 rounded-full bg-blue-500/5 blur-xl"></div>
 
           <div className="flex justify-between items-center relative z-10">
-            <span className="text-[10px] uppercase font-black tracking-widest text-orange-650 flex items-center gap-1.5 font-mono">
-              <Flame className="h-4.5 w-4.5 text-orange-500 animate-pulse" />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-blue-600 flex items-center gap-1.5 font-mono">
+              <Flame className="h-4.5 w-4.5 text-blue-600 animate-pulse" />
               Theoretical Base
             </span>
-            <span className="text-[10px] uppercase font-mono font-black rounded-full bg-slate-100 text-slate-800 px-3 py-1 border-2 border-slate-900">
-              {localProfile.unitSystem === 'metric' ? 'Metric calculation' : 'Imperial calculation'}
+            <span className="text-[10px] uppercase font-mono font-bold rounded-full bg-slate-100 text-slate-800 px-3 py-1 border border-slate-200">
+              {localProfile.unitSystem === 'metric' ? 'Metric' : 'Imperial'}
             </span>
           </div>
 
@@ -419,7 +418,7 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
               <span className="text-6xl font-black tracking-tight text-slate-900 leading-none">
                 {theoreticalTdee.toLocaleString()}
               </span>
-              <span className="text-base font-black text-slate-400 font-mono uppercase ml-1.5">kcal/day</span>
+              <span className="text-base font-bold text-slate-400 font-mono uppercase ml-1.5">kcal/day</span>
             </div>
             <p className="text-xs text-slate-500 mt-4 max-w-[95%] leading-relaxed font-semibold">
               This represents your calculated biological energy budget to strictly maintain your current weight of {localProfile.weight} {localProfile.unitSystem === 'metric' ? 'kg' : 'lbs'}.
@@ -427,10 +426,10 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
           </div>
 
           {/* Sub Row */}
-          <div className="border-t-2 border-dashed border-slate-200 pt-4 flex justify-between items-center relative z-10">
+          <div className="border-t border-dashed border-slate-200 pt-4 flex justify-between items-center relative z-10">
             <div>
-              <span className="text-[9px] uppercase text-slate-450 font-mono font-black block">BMR QUOTIENT</span>
-              <span className="text-base font-black text-slate-950 font-mono">
+              <span className="text-[9px] uppercase text-slate-400 font-mono font-bold block">BMR QUOTIENT</span>
+              <span className="text-base font-bold text-slate-950 font-mono">
                 {calculateBMR(
                   localProfile.gender,
                   localProfile.unitSystem === 'imperial' ? lbsToKg(localProfile.weight) : localProfile.weight,
@@ -446,23 +445,23 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
             </div>
 
             <div className="text-right">
-              <span className="text-[9px] uppercase text-slate-450 font-mono font-black block">Stature STAT</span>
-              <span className="text-sm font-black text-slate-700 font-mono uppercase">{formatHeight(localProfile)}</span>
+              <span className="text-[9px] uppercase text-slate-400 font-mono font-bold block">Stature STAT</span>
+              <span className="text-sm font-bold text-slate-700 font-mono uppercase">{formatHeight(localProfile)}</span>
             </div>
           </div>
         </div>
 
         {/* Second Card: BMI Diagnostics Widget */}
-        <div className="bg-white rounded-3xl border-2 border-slate-900 p-6 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5 transition-all hover:translate-y-[-2px]">
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col gap-5 transition-colors">
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 uppercase font-mono tracking-wide">
-              <Sparkles className="h-4.5 w-4.5 text-orange-500" />
+            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase font-mono tracking-wide">
+              <Sparkles className="h-4.5 w-4.5 text-blue-500" />
               Body Mass Index
             </h3>
-            <span className={`text-[10px] font-mono font-black px-2.5 py-1 rounded-full border-2 border-slate-900 uppercase ${
-              bmiAnalytics.category === 'Normal' ? 'bg-emerald-100 text-emerald-850' :
-              bmiAnalytics.category === 'Underweight' ? 'bg-amber-100 text-amber-900' :
-              bmiAnalytics.category === 'Overweight' ? 'bg-orange-100 text-orange-950' : 'bg-rose-100 text-rose-900'
+            <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border uppercase ${
+              bmiAnalytics.category === 'Normal' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' :
+              bmiAnalytics.category === 'Underweight' ? 'bg-amber-50 text-amber-800 border-amber-100' :
+              bmiAnalytics.category === 'Overweight' ? 'bg-orange-50 text-orange-950 border-orange-100' : 'bg-rose-50 text-rose-900 border-rose-100'
             }`}>
               {bmiAnalytics.category}
             </span>
@@ -471,10 +470,10 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
           {/* BMI Gauge bar */}
           <div className="flex flex-col gap-2.5">
             <div className="flex justify-between text-xs font-semibold text-slate-600 font-mono">
-              <span className="font-black text-slate-900">BMI score: {bmiAnalytics.bmi}</span>
-              <span className="text-slate-400 text-[10px] font-black uppercase">18.5 – 25.0 Ideal</span>
+              <span className="font-bold text-slate-900">BMI score: {bmiAnalytics.bmi}</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase">18.5 – 25.0 Ideal</span>
             </div>
-            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-300">
+            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
               <div className="h-full bg-amber-400" style={{ width: '18%' }}></div>
               <div className="h-full bg-emerald-500" style={{ width: '30%' }}></div>
               <div className="h-full bg-orange-400" style={{ width: '25%' }}></div>
@@ -495,13 +494,13 @@ export default function BioProfileForm({ profile, onChange }: BioProfileFormProp
           </div>
 
           {/* Healthy weight guidelines info */}
-          <div className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-900 text-xs flex items-start gap-2.5 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
-            <AlertCircle className="h-4.5 w-4.5 text-orange-600 shrink-0 mt-0.5" />
+          <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-150 text-xs flex items-start gap-2.5">
+            <AlertCircle className="h-4.5 w-4.5 text-blue-600 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-0.5">
-              <span className="font-extrabold text-slate-900 uppercase font-mono tracking-wide text-[10px]">WHO Ideal Guidance:</span>
-              <p className="text-slate-550 leading-relaxed font-semibold mt-0.5">
+              <span className="font-bold text-slate-900 uppercase font-mono tracking-wide text-[10px]">WHO Ideal Guidance:</span>
+              <p className="text-slate-500 leading-relaxed font-semibold mt-0.5">
                 Your calculated ideal biological weight range is{' '}
-                <span className="font-black text-slate-900 underline decoration-2 decoration-orange-500">
+                <span className="font-bold text-slate-900 underline decoration-2 decoration-blue-500">
                   {bmiAnalytics.idealWeightMin} - {bmiAnalytics.idealWeightMax}{' '}
                   {localProfile.unitSystem === 'metric' ? 'kg' : 'lbs'}
                 </span>{' '}

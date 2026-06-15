@@ -1,6 +1,6 @@
 {
-  "name": "My TDEE Tracker & Calculator",
-  "description": "An empirical adaptive TDEE calculator and weight tracker to map human metabolism based on logged calorie and weight metrics.",
+  "name": "IDFC",
+  "description": "An empirical adaptive TDEE calculator, weight tracker, and nutrition diary to map human metabolism.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

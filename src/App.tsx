@@ -17,6 +17,7 @@ const DEFAULT_PROFILE: UserBioProfile = {
   macroType: 'balanced',
   heightFt: 5,
   heightIn: 11,
+  language: 'en',
 };
 
 export default function App() {
@@ -33,7 +34,11 @@ export default function App() {
       const storedFoodLogs = localStorage.getItem('tdee_food_logs');
 
       if (storedProfile) {
-        setProfile(JSON.parse(storedProfile));
+        const parsed = JSON.parse(storedProfile);
+        if (!parsed.language) {
+          parsed.language = 'en';
+        }
+        setProfile(parsed);
       }
       if (storedLogs) {
         setLogs(JSON.parse(storedLogs));
@@ -116,6 +121,11 @@ export default function App() {
     syncCalorieLogForDate(dateStr, updated, logs);
   };
 
+  const handleUpdateFoodLogs = (newFoodLogs: FoodItemLog[]) => {
+    setFoodLogs(newFoodLogs);
+    localStorage.setItem('tdee_food_logs', JSON.stringify(newFoodLogs));
+  };
+
   // Convert unit system cleanly (weight, height variables, and all historic log entries dynamically!)
   const handleToggleUnits = () => {
     const nextSystem = profile.unitSystem === 'metric' ? 'imperial' : 'metric';
@@ -189,6 +199,7 @@ export default function App() {
           onAddFoodLog={handleAddFoodLog}
           onDeleteFoodLog={handleDeleteFoodLog}
           onClearFoodLogsForDate={handleClearFoodLogsForDate}
+          onUpdateFoodLogs={handleUpdateFoodLogs}
         />
       </main>
 

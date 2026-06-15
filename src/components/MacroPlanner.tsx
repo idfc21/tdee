@@ -94,11 +94,11 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Target goals and multipliers panel */}
-      <div className="lg:col-span-6 bg-white rounded-3xl border-2 border-slate-900 p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5">
+      <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 flex flex-col gap-5">
         <div>
-          <span className="text-[10px] font-black tracking-widest text-orange-605 uppercase font-mono block">CALORIC ENGINE</span>
-          <h2 className="text-xl font-black text-slate-900 flex items-center gap-2 mt-0.5 uppercase tracking-tight">
-            <Scale className="h-5.5 w-5.5 text-orange-550" />
+          <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase font-mono block">CALORIC ENGINE</span>
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mt-0.5 uppercase tracking-tight">
+            <Scale className="h-5.5 w-5.5 text-blue-550" />
             Diet Goal & Caloric Blueprint
           </h2>
           <p className="text-xs text-slate-400 mt-1 font-medium">Select your body target. We adjust calorie limits to create the proper budget.</p>
@@ -106,16 +106,16 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
 
         {/* Selected base TDEE notice */}
         {adaptiveTdee && (
-          <div className="bg-emerald-50 border-2 border-slate-900 rounded-2xl p-4 text-xs text-slate-900 flex items-center gap-2.5 shadow-[3px_3px_0px_0px_rgba(16,185,129,0.3)]">
-            <Sparkles className="h-4.5 w-4.5 text-emerald-600 animate-pulse shrink-0" />
+          <div className="bg-emerald-50/55 border border-emerald-150 rounded-2xl p-4 text-xs text-slate-900 flex items-center gap-2.5">
+            <Sparkles className="h-4.5 w-4.5 text-emerald-600 shrink-0 animate-pulse" />
             <p className="font-semibold leading-relaxed">
-              Adaptive TDEE active: Calculations are proxying your logged empirical metabolism (<strong className="underline decoration-2 decoration-emerald-500">{Math.round(adaptiveTdee)} kcal</strong>) instead of math formulas!
+              Adaptive TDEE active: Calculations are proxying your logged empirical metabolism (<strong className="underline decoration-2 decoration-blue-500">{Math.round(adaptiveTdee)} kcal</strong>) instead of math formulas!
             </p>
           </div>
         )}
 
         {/* Goal list Buttons */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {(
             [
               {
@@ -159,22 +159,22 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             <button
               key={item.id}
               onClick={() => handleGoalChange(item.id)}
-              className={`flex items-start justify-between p-4 rounded-2xl border-2 text-left transition-all text-xs cursor-pointer ${
+              className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-colors text-xs cursor-pointer ${
                 localProfile.goal === item.id
-                  ? 'border-slate-900 bg-orange-50 text-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] font-bold'
-                  : 'border-slate-200 bg-white hover:border-slate-900 hover:text-slate-900 hover:shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] text-slate-500'
+                  ? 'border-blue-500 bg-blue-55/10 text-slate-905 font-bold'
+                  : 'border-slate-200 bg-white hover:border-slate-350 text-slate-500 hover:text-slate-900'
               }`}
             >
               <div className="flex flex-col gap-1 max-w-[70%]">
-                <span className="font-extrabold text-slate-900 text-sm">{item.label}</span>
-                <span className="text-[11px] text-slate-450 font-normal leading-relaxed">{item.desc}</span>
+                <span className="font-bold text-slate-900 text-sm">{item.label}</span>
+                <span className="text-[11px] text-slate-400 font-normal leading-relaxed">{item.desc}</span>
               </div>
-              <span className={`font-mono text-[10px] font-black px-2.5 py-1 rounded-lg shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] border-2 border-slate-950 block self-center truncate ${
+              <span className={`font-mono text-[10px] font-bold px-2.5 py-1 rounded-lg border block self-center truncate ${
                 item.id.includes('cut')
-                  ? 'text-rose-700 bg-rose-100'
+                  ? 'text-rose-750 bg-rose-50 border-rose-100'
                   : item.id === 'maintain'
-                  ? 'text-slate-800 bg-slate-100'
-                  : 'text-emerald-700 bg-emerald-100'
+                  ? 'text-slate-800 bg-slate-50 border-slate-150'
+                  : 'text-emerald-750 bg-emerald-50 border-emerald-100'
               }`}>
                 {item.adj}
               </span>
@@ -187,33 +187,32 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
       <div className="lg:col-span-6 flex flex-col gap-6">
         
         {/* Calorics target summary card */}
-        <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-8 flex flex-col gap-5 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] transition-all hover:translate-y-[-2px]">
-          <div className="flex justify-between items-center border-b-2 border-dashed border-slate-200 pb-4">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col gap-5">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
             <div>
-              <span className="text-[10px] uppercase font-black text-slate-400 font-mono block">Your Daily Budget</span>
+              <span className="text-[10px] uppercase font-bold text-slate-400 font-mono block">Your Daily Budget</span>
               <span className="text-4xl font-black text-slate-900 font-mono tracking-tight" id="goal-calories-target">
                 {targetCalories.toLocaleString()}{' '}
-                <span className="text-sm text-slate-405 font-black uppercase">kcal/day</span>
+                <span className="text-sm text-slate-400 font-bold uppercase">kcal/day</span>
               </span>
             </div>
-            <div className="bg-orange-50 border-2 border-slate-900 px-3.5 py-2 rounded-2xl text-right shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
-              <span className="text-[9px] uppercase font-black text-orange-950 font-mono block">Active Goal</span>
-              <span className="text-xs font-black text-orange-700 uppercase tracking-tight">
+            <div className="bg-blue-50 border border-blue-105 px-3.5 py-1.5 rounded-2xl text-right">
+              <span className="text-[9px] uppercase font-bold text-blue-950 font-mono block">Active Goal</span>
+              <span className="text-xs font-bold text-blue-755 uppercase tracking-tight">
                 {localProfile.goal.replace(/_/g, ' ')}
               </span>
-            </div>
-          </div>
+            </div>          </div>
 
           {/* Macronutrients Splits grams and percentages */}
           <div className="grid grid-cols-3 gap-3">
             {/* Protein Card */}
-            <div className="bg-white p-3.5 rounded-2xl border-2 border-slate-900 flex flex-col gap-1.5 shadow-[2px_2px_0px_0px_rgba(244,63,94,1)]">
-              <span className="text-[10px] font-black text-rose-600 uppercase flex items-center gap-1 font-mono">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-col gap-1.5 transition-colors">
+              <span className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-1 font-mono">
                 <Dumbbell className="h-3.5 w-3.5 text-rose-500" />
                 protein
               </span>
               <div>
-                <span className="text-2xl font-black text-slate-900 font-mono">{macroDetails.proteinGrams}g</span>
+                <span className="text-2xl font-bold text-slate-900 font-mono">{macroDetails.proteinGrams}g</span>
                 <span className="text-[10px] text-slate-400 block font-mono font-bold mt-0.5">
                   {macroDetails.proteinCalories} kcal ({macroDetails.ratio.protein}%)
                 </span>
@@ -221,13 +220,13 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             </div>
 
             {/* Carbohydrates Card */}
-            <div className="bg-white p-3.5 rounded-2xl border-2 border-slate-900 flex flex-col gap-1.5 shadow-[2px_2px_0px_0px_rgba(245,158,11,1)]">
-              <span className="text-[10px] font-black text-amber-600 uppercase flex items-center gap-1 font-mono">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-col gap-1.5 transition-colors">
+              <span className="text-[10px] font-bold text-amber-600 uppercase flex items-center gap-1 font-mono">
                 <Apple className="h-3.5 w-3.5 text-amber-500" />
                 carbs
               </span>
               <div>
-                <span className="text-2xl font-black text-slate-900 font-mono">{macroDetails.carbGrams}g</span>
+                <span className="text-2xl font-bold text-slate-900 font-mono">{macroDetails.carbGrams}g</span>
                 <span className="text-[10px] text-slate-400 block font-mono font-bold mt-0.5">
                   {macroDetails.carbCalories} kcal ({macroDetails.ratio.carb}%)
                 </span>
@@ -235,13 +234,13 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             </div>
 
             {/* Fats Card */}
-            <div className="bg-white p-3.5 rounded-2xl border-2 border-slate-900 flex flex-col gap-1.5 shadow-[2px_2px_0px_0px_rgba(56,189,248,1)]">
-              <span className="text-[10px] font-black text-sky-600 uppercase flex items-center gap-1 font-mono">
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-col gap-1.5 transition-colors">
+              <span className="text-[10px] font-bold text-sky-600 uppercase flex items-center gap-1 font-mono">
                 <Pizza className="h-3.5 w-3.5 text-sky-500" />
                 fats
               </span>
               <div>
-                <span className="text-2xl font-black text-slate-900 font-mono">{macroDetails.fatGrams}g</span>
+                <span className="text-2xl font-bold text-slate-900 font-mono">{macroDetails.fatGrams}g</span>
                 <span className="text-[10px] text-slate-400 block font-mono font-bold mt-0.5">
                   {macroDetails.fatCalories} kcal ({macroDetails.ratio.fat}%)
                 </span>
@@ -256,7 +255,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
               <span>Carbs: {macroDetails.ratio.carb}%</span>
               <span>Fat: {macroDetails.ratio.fat}%</span>
             </div>
-            <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden flex border-2 border-slate-900 shadow-sm">
+            <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden flex border border-slate-200">
               <div className="h-full bg-rose-500" style={{ width: `${macroDetails.ratio.protein}%` }}></div>
               <div className="h-full bg-amber-400" style={{ width: `${macroDetails.ratio.carb}%` }}></div>
               <div className="h-full bg-sky-450" style={{ width: `${macroDetails.ratio.fat}%` }}></div>
@@ -265,10 +264,10 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
         </div>
 
         {/* Dietary Split profile choices */}
-        <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 shadow-[6px_6px_0px_0px_rgba(15,23,42,1)] flex flex-col gap-5 transition-all hover:translate-y-[-2px]">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
-            <h3 className="text-xs font-black text-slate-900 flex items-center gap-1.5 uppercase font-mono">
-              <Zap className="h-4.5 w-4.5 text-orange-500" />
+            <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase font-mono">
+              <Zap className="h-4.5 w-4.5 text-blue-500" />
               Nutritional Presets
             </h3>
 
@@ -276,7 +275,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             <select
               value={localProfile.macroType}
               onChange={(e) => handleMacroTypeChange(e.target.value as MacroType)}
-              className="bg-slate-50 cursor-pointer border-2 border-slate-900 rounded-xl px-2.5 py-1.5 text-xs font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+              className="bg-slate-50 cursor-pointer border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-550/30"
             >
               <option value="balanced">Balanced Split (30/40/30)</option>
               <option value="high_protein">High Protein (40/35/25)</option>
@@ -288,12 +287,12 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
 
           {/* Custom mode ratios sliders */}
           {localProfile.macroType === 'custom' && (
-            <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-900 flex flex-col gap-4 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-4">
               <div className="flex flex-col gap-3">
                 {/* Protein Slider */}
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-rose-600 uppercase font-mono text-[10px]">Protein: {customRatio.protein}%</span>
+                    <span className="text-rose-650 uppercase font-mono text-[10px]">Protein: {customRatio.protein}%</span>
                     <span className="text-slate-500 font-mono text-xs">{(targetCalories * (customRatio.protein / 100) / 4).toFixed(0)}g</span>
                   </div>
                   <input
@@ -310,8 +309,8 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
                 {/* Carbohydrates Slider */}
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-amber-600 uppercase font-mono text-[10px]">Carbs: {customRatio.carb}%</span>
-                    <span className="text-slate-500 font-mono text-xs">{(targetCalories * (customRatio.carb / 100) / 4).toFixed(0)}g</span>
+                    <span className="text-amber-650 uppercase font-mono text-[10px]">Carbs: {customRatio.carb}%</span>
+                    <span className="text-slate-505 font-mono text-xs">{(targetCalories * (customRatio.carb / 100) / 4).toFixed(0)}g</span>
                   </div>
                   <input
                     type="range"
@@ -327,8 +326,8 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
                 {/* Fats Slider */}
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-sky-600 uppercase font-mono text-[10px]">Fats: {customRatio.fat}%</span>
-                    <span className="text-slate-500 font-mono text-xs">{(targetCalories * (customRatio.fat / 100) / 9).toFixed(0)}g</span>
+                    <span className="text-sky-650 uppercase font-mono text-[10px]">Fats: {customRatio.fat}%</span>
+                    <span className="text-slate-505 font-mono text-xs">{(targetCalories * (customRatio.fat / 100) / 9).toFixed(0)}g</span>
                   </div>
                   <input
                     type="range"
@@ -344,12 +343,12 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
 
               {/* Validation alert */}
               {errorMsg ? (
-                <div className="bg-rose-50 text-rose-800 border-2 border-slate-900 text-[10px] font-black font-semibold p-2.5 rounded-xl flex items-center gap-1.5 font-mono uppercase">
+                <div className="bg-rose-50 text-rose-800 border border-slate-200 text-[10px] font-bold p-2.5 rounded-xl flex items-center gap-1.5 font-mono uppercase">
                   <Info className="h-4 w-4 shrink-0 text-rose-500" />
                   <span>{errorMsg}</span>
                 </div>
               ) : (
-                <div className="bg-emerald-50 text-emerald-800 border-2 border-slate-900 text-[10px] font-black p-2.5 rounded-xl flex items-center gap-1.5 font-mono uppercase justify-center">
+                <div className="bg-emerald-50 text-emerald-800 border border-emerald-100 text-[10px] font-bold p-2.5 rounded-xl flex items-center gap-1.5 font-mono uppercase justify-center">
                   <span>Exact 100% split achieved! Saved.</span>
                 </div>
               )}
@@ -357,21 +356,21 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
           )}
 
           {/* Dietary Coaching Details info */}
-          <div className="border-t-2 border-dashed border-slate-200 pt-4 text-xs text-slate-500 flex flex-col gap-3 mt-1 leading-relaxed">
+          <div className="border-t border-dashed border-slate-200 pt-4 text-xs text-slate-555 flex flex-col gap-3 mt-1 leading-relaxed">
             <div className="flex items-center gap-1.5">
-              <span className="text-orange-705 font-black font-mono tracking-tight uppercase bg-orange-100 border-2 border-slate-900 text-[9px] px-2.5 py-0.5 rounded-lg shadow-[1px_1px_0px_0px_rgba(15,23,42,1)]">
+              <span className="text-blue-700 font-bold font-mono tracking-tight uppercase bg-blue-50 border border-blue-100 text-[9px] px-2.5 py-0.5 rounded-lg">
                 Coach Focus
               </span>
-              <span className="font-extrabold text-slate-905">{insight.tag}</span>
+              <span className="font-bold text-slate-800">{insight.tag}</span>
             </div>
             <p className="text-slate-500 leading-relaxed font-semibold">{insight.focus}</p>
 
             <div className="flex flex-wrap items-center gap-1.5 mt-1">
-              <span className="font-black text-slate-400 text-[10px] uppercase font-mono mr-1">Recommended Fuels:</span>
+              <span className="font-bold text-slate-400 text-[10px] uppercase font-mono mr-1">Recommended Fuels:</span>
               {insight.foods.map((food, i) => (
                 <span
                   key={i}
-                  className="bg-slate-50 text-slate-800 px-2.5 py-1 rounded-xl text-[10px] font-black border-2 border-slate-900 shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] uppercase font-mono"
+                  className="bg-slate-50 text-slate-800 px-2.5 py-1 rounded-xl text-[10px] font-bold border border-slate-200 uppercase font-mono"
                 >
                   {food}
                 </span>

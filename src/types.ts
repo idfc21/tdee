@@ -41,6 +41,7 @@ export interface UserBioProfile {
   customMacros?: MacroRatio;
   heightFt?: number; // for imperial feet input
   heightIn?: number; // for imperial inches input
+  language?: 'en' | 'ru';
 }
 
 export interface DailyLog {
