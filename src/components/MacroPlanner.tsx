@@ -94,11 +94,11 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Target goals and multipliers panel */}
-      <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 flex flex-col gap-5">
+      <div className="lg:col-span-6 bg-white rounded-3xl border border-[#eef1f6] p-6 sm:p-8 flex flex-col gap-5">
         <div>
-          <span className="text-[10px] font-bold tracking-widest text-blue-600 uppercase font-mono block">CALORIC ENGINE</span>
+          <span className="text-[10px] font-bold tracking-widest text-[#00c08b] uppercase font-mono block">CALORIC ENGINE</span>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mt-0.5 uppercase tracking-tight">
-            <Scale className="h-5.5 w-5.5 text-blue-550" />
+            <Scale className="h-5.5 w-5.5 text-[#00c08b]" />
             Diet Goal & Caloric Blueprint
           </h2>
           <p className="text-xs text-slate-400 mt-1 font-medium">Select your body target. We adjust calorie limits to create the proper budget.</p>
@@ -109,7 +109,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
           <div className="bg-emerald-50/55 border border-emerald-150 rounded-2xl p-4 text-xs text-slate-900 flex items-center gap-2.5">
             <Sparkles className="h-4.5 w-4.5 text-emerald-600 shrink-0 animate-pulse" />
             <p className="font-semibold leading-relaxed">
-              Adaptive TDEE active: Calculations are proxying your logged empirical metabolism (<strong className="underline decoration-2 decoration-blue-500">{Math.round(adaptiveTdee)} kcal</strong>) instead of math formulas!
+              Adaptive TDEE active: Calculations are proxying your logged empirical metabolism (<strong className="underline decoration-2 decoration-[#00c08b]">{Math.round(adaptiveTdee)} kcal</strong>) instead of math formulas!
             </p>
           </div>
         )}
@@ -159,9 +159,9 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             <button
               key={item.id}
               onClick={() => handleGoalChange(item.id)}
-              className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-colors text-xs cursor-pointer ${
+              className={`flex items-start justify-between p-4 rounded-2xl border text-left transition-all text-xs cursor-pointer ${
                 localProfile.goal === item.id
-                  ? 'border-blue-500 bg-blue-55/10 text-slate-905 font-bold'
+                  ? 'border-[#00c08b] bg-[#00c08b]/5 text-slate-900 font-bold'
                   : 'border-slate-200 bg-white hover:border-slate-350 text-slate-500 hover:text-slate-900'
               }`}
             >
@@ -187,7 +187,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
       <div className="lg:col-span-6 flex flex-col gap-6">
         
         {/* Calorics target summary card */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col gap-5">
+        <div className="bg-white border border-[#eef1f6] rounded-3xl p-6 sm:p-8 flex flex-col gap-5 shadow-sm">
           <div className="flex justify-between items-center border-b border-slate-100 pb-4">
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-400 font-mono block">Your Daily Budget</span>
@@ -196,9 +196,9 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
                 <span className="text-sm text-slate-400 font-bold uppercase">kcal/day</span>
               </span>
             </div>
-            <div className="bg-blue-50 border border-blue-105 px-3.5 py-1.5 rounded-2xl text-right">
-              <span className="text-[9px] uppercase font-bold text-blue-950 font-mono block">Active Goal</span>
-              <span className="text-xs font-bold text-blue-755 uppercase tracking-tight">
+            <div className="bg-[#00c08b]/5 border border-[#00c08b]/10 px-3.5 py-1.5 rounded-2xl text-right">
+              <span className="text-[9px] uppercase font-bold text-[#00c08b] font-mono block">Active Goal</span>
+              <span className="text-xs font-bold text-[#00c08b] uppercase tracking-tight">
                 {localProfile.goal.replace(/_/g, ' ')}
               </span>
             </div>          </div>
@@ -264,10 +264,10 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
         </div>
 
         {/* Dietary Split profile choices */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 flex flex-col gap-5">
+        <div className="bg-white border border-[#eef1f6] rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
           <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center">
             <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase font-mono">
-              <Zap className="h-4.5 w-4.5 text-blue-500" />
+              <Zap className="h-4.5 w-4.5 text-[#00c08b]" />
               Nutritional Presets
             </h3>
 
@@ -275,7 +275,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
             <select
               value={localProfile.macroType}
               onChange={(e) => handleMacroTypeChange(e.target.value as MacroType)}
-              className="bg-slate-50 cursor-pointer border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-550/30"
+              className="bg-slate-50 cursor-pointer border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#00c08b]/30"
             >
               <option value="balanced">Balanced Split (30/40/30)</option>
               <option value="high_protein">High Protein (40/35/25)</option>
@@ -358,7 +358,7 @@ export default function MacroPlanner({ profile, onChange, adaptiveTdee }: MacroP
           {/* Dietary Coaching Details info */}
           <div className="border-t border-dashed border-slate-200 pt-4 text-xs text-slate-555 flex flex-col gap-3 mt-1 leading-relaxed">
             <div className="flex items-center gap-1.5">
-              <span className="text-blue-700 font-bold font-mono tracking-tight uppercase bg-blue-50 border border-blue-100 text-[9px] px-2.5 py-0.5 rounded-lg">
+              <span className="text-[#00c08b] font-bold font-mono tracking-tight uppercase bg-[#00c08b]/5 border border-[#00c08b]/10 text-[9px] px-2.5 py-0.5 rounded-lg">
                 Coach Focus
               </span>
               <span className="font-bold text-slate-800">{insight.tag}</span>

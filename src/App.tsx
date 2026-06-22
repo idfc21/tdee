@@ -183,10 +183,38 @@ export default function App() {
     );
   }
 
+  const fontMapping: Record<string, string> = {
+    'dm-sans': '"DM Sans", sans-serif',
+    'inter': '"Inter", sans-serif',
+    'space-grotesk': '"Space Grotesk", sans-serif',
+    'playfair': '"Playfair Display", serif',
+    'outfit': '"Outfit", sans-serif',
+    'mono': '"JetBrains Mono", monospace'
+  };
+
+  const fontFamily = fontMapping[profile.fontFamily || 'dm-sans'] || fontMapping['dm-sans'];
+  const activeThemeStyle = profile.themeStyle || 'soft-cozy';
+
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-800 antialiased flex flex-col">
+    <div 
+      style={{ 
+        fontFamily,
+        ['--font-sans' as any]: fontFamily
+      }}
+      className={`min-h-screen antialiased flex flex-col transition-colors duration-200 ${
+        activeThemeStyle === 'samsung-active' 
+          ? 'bg-[#060913] text-slate-100' 
+          : 'bg-slate-50/50 text-slate-800'
+      }`}
+    >
       {/* Header bar */}
-      <Header unitSystem={profile.unitSystem} onToggleUnits={handleToggleUnits} />
+      <Header 
+        unitSystem={profile.unitSystem} 
+        onToggleUnits={handleToggleUnits} 
+        themeStyle={activeThemeStyle}
+        onChangeThemeStyle={(style) => handleUpdateProfile({ ...profile, themeStyle: style })}
+        language={profile.language || 'en'}
+      />
 
       {/* Main Container Dashboard */}
       <main className="flex-1 w-full flex flex-col">
@@ -204,7 +232,11 @@ export default function App() {
       </main>
 
       {/* Simple decorative page footer */}
-      <footer className="border-t border-slate-100 bg-white py-4 text-center text-[10px] text-slate-400 font-mono">
+      <footer className={`border-t py-4 text-center text-[10px] font-mono transition-colors duration-200 ${
+        activeThemeStyle === 'samsung-active'
+          ? 'border-[#121625] bg-[#0c0f1d] text-slate-500'
+          : 'border-slate-100 bg-white text-slate-400'
+      }`}>
         &copy; {new Date().getFullYear()} TDEE Empirical Tracker Engine &bull; Private & Secure
       </footer>
     </div>

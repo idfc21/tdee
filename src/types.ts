@@ -42,6 +42,8 @@ export interface UserBioProfile {
   heightFt?: number; // for imperial feet input
   heightIn?: number; // for imperial inches input
   language?: 'en' | 'ru';
+  fontFamily?: string;
+  themeStyle?: 'soft-cozy' | 'samsung-active';
 }
 
 export interface DailyLog {

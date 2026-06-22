@@ -620,16 +620,11 @@ export const LOCAL_FOOD_DATABASE: FoodDbItem[] = [
 ];
 
 // Helper to filter and search local items securely
-export function searchLocalFoods(query: string, region: 'all' | 'us' | 'ru' | 'ua'): FoodDbItem[] {
+export function searchLocalFoods(query: string): FoodDbItem[] {
   const normQuery = query.toLowerCase().trim();
   if (!normQuery) return [];
 
   return LOCAL_FOOD_DATABASE.filter((item) => {
-    // Check region filter
-    if (region !== 'all' && item.region !== region) {
-      return false;
-    }
-
     // Match name, brand, or tag keyword inclusions
     const matchesName = item.name.toLowerCase().includes(normQuery);
     const matchesBrand = item.brand ? item.brand.toLowerCase().includes(normQuery) : false;
@@ -641,83 +636,87 @@ export function searchLocalFoods(query: string, region: 'all' | 'us' | 'ru' | 'u
 
 // Global Open Food Facts Live Search API Integration
 // Free, CORS-friendly, no authentication token required!
-export async function searchOpenFoodFacts(query: string, regionCode: 'all' | 'us' | 'ru' | 'ua'): Promise<FoodDbItem[]> {
+export async function searchOpenFoodFacts(query: string): Promise<FoodDbItem[]> {
   const normQuery = query.toLowerCase().trim();
   if (!normQuery) return [];
 
-  // Map region to standard Open Food Facts codes or domain prefixes
-  let subdomain = 'world';
-  if (regionCode === 'ru') subdomain = 'ru';
-  if (regionCode === 'ua') subdomain = 'ua'; // Ukraine localized subdomain
+  // Auto-detect alphabet of query
+  const isCyrillic = /[а-яёіїєґ]/i.test(normQuery);
+  const subdomains = isCyrillic ? ['ru', 'ua', 'world'] : ['us', 'world'];
 
-  // Query endpoint using process parameters
-  const url = `https://${subdomain}.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(normQuery)}&search_simple=1&action=process&json=1&page_size=24`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'TdeeDietEmpiricalTracker - Web - v1.0'
-      }
-    });
-
-    if (!res.ok) {
-      throw new Error(`Open Food Facts returned healthy status code ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (!data || !Array.isArray(data.products)) {
-      return [];
-    }
-
-    return data.products
-      .filter((prod: any) => {
-        // filter out items lacking primary identifier info
-        return prod && (prod.product_name || prod.product_name_ru || prod.product_name_en);
-      })
-      .map((p: any, index: number) => {
-        // Choose highest likelihood local name matched
-        let name = p.product_name || p.product_name_en || p.product_name_ru || 'Unknown food item';
-        
-        // Clean double names or extra code noise from titles
-        if (p.product_name_ru && regionCode === 'ru') name = p.product_name_ru;
-        if (p.product_name_uk && regionCode === 'ua') name = p.product_name_uk;
-
-        // Extract safe real metrics fallback
-        const nut = p.nutriments || {};
-        
-        // OFF provides energy in kJ or kcal, extract kcal primarily or convert if kJ-only
-        let cals = 0;
-        if (typeof nut['energy-kcal_100g'] === 'number') {
-          cals = nut['energy-kcal_100g'];
-        } else if (typeof nut['energy-kcal'] === 'number') {
-          cals = nut['energy-kcal'];
-        } else if (typeof nut['energy_100g'] === 'number') {
-          // Convert kJ to kcal
-          cals = Math.round(nut['energy_100g'] / 4.184);
-        }
-
-        const protein = Math.round((parseFloat(nut.proteins_100g || nut.proteins || 0) || 0) * 10) / 10;
-        const carbs = Math.round((parseFloat(nut.carbohydrates_100g || nut.carbohydrates || 0) || 0) * 10) / 10;
-        const fat = Math.round((parseFloat(nut.fat_100g || nut.fat || 0) || 0) * 10) / 10;
-
-        return {
-          id: `off-${p.code || index}-${Math.random().toString(36).substring(2, 5)}`,
-          name: name,
-          brand: p.brands ? p.brands.split(',')[0].trim() : 'Global Food',
-          caloriesPer100g: Math.round(cals),
-          proteinPer100g: protein,
-          carbsPer100g: carbs,
-          fatPer100g: fat,
-          region: regionCode === 'all' ? 'global' : regionCode,
-          lang: regionCode === 'ru' ? 'ru' : regionCode === 'ua' ? 'uk' : 'en',
-          tags: []
-        } as FoodDbItem;
+  const fetchFromSubdomain = async (sub: string): Promise<FoodDbItem[]> => {
+    const url = `https://${sub}.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(normQuery)}&search_simple=1&action=process&json=1&page_size=15`;
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'TdeeDietEmpiricalTracker - Web - v1.0'
+        },
+        signal: AbortSignal.timeout(6000) // 6 seconds timeout per request
       });
 
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!data || !Array.isArray(data.products)) return [];
+
+      return data.products
+        .filter((prod: any) => prod && (prod.product_name || prod.product_name_ru || prod.product_name_en))
+        .map((p: any, index: number) => {
+          let name = p.product_name || p.product_name_en || p.product_name_ru || 'Unknown food item';
+          
+          if (p.product_name_ru && sub === 'ru') name = p.product_name_ru;
+          if (p.product_name_uk && sub === 'ua') name = p.product_name_uk;
+
+          const nut = p.nutriments || {};
+          let cals = 0;
+          if (typeof nut['energy-kcal_100g'] === 'number') {
+            cals = nut['energy-kcal_100g'];
+          } else if (typeof nut['energy-kcal'] === 'number') {
+            cals = nut['energy-kcal'];
+          } else if (typeof nut['energy_100g'] === 'number') {
+            cals = Math.round(nut['energy_100g'] / 4.184);
+          }
+
+          const protein = Math.round((parseFloat(nut.proteins_100g || nut.proteins || 0) || 0) * 10) / 10;
+          const carbs = Math.round((parseFloat(nut.carbohydrates_100g || nut.carbohydrates || 0) || 0) * 10) / 10;
+          const fat = Math.round((parseFloat(nut.fat_100g || nut.fat || 0) || 0) * 10) / 10;
+
+          return {
+            id: `off-${sub}-${p.code || index}-${Math.random().toString(36).substring(2, 5)}`,
+            name: name,
+            brand: p.brands ? p.brands.split(',')[0].trim() : 'Global Food',
+            caloriesPer100g: Math.round(cals),
+            proteinPer100g: protein,
+            carbsPer100g: carbs,
+            fatPer100g: fat,
+            region: sub,
+            lang: sub === 'ru' ? 'ru' : sub === 'ua' ? 'uk' : 'en',
+            tags: []
+          } as FoodDbItem;
+        });
+    } catch {
+      return [];
+    }
+  };
+
+  try {
+    const resultsLists = await Promise.all(subdomains.map(sub => fetchFromSubdomain(sub)));
+    const merged: FoodDbItem[] = [];
+    const seenCombos = new Set<string>();
+
+    for (const prodList of resultsLists) {
+      for (const item of prodList) {
+        const uniqueKey = `${item.name.toLowerCase()}-${item.caloriesPer100g}`;
+        if (!seenCombos.has(uniqueKey)) {
+          seenCombos.add(uniqueKey);
+          merged.push(item);
+        }
+      }
+    }
+    return merged;
   } catch (error) {
-    console.warn('Open Food Facts online background query failed or CORS was limited. Falling back to local search.', error);
+    console.warn('Open Food Facts parallel query failed', error);
     return [];
   }
 }
